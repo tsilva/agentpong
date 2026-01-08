@@ -31,27 +31,27 @@ if [ "$TERM_PROGRAM" = "vscode" ] || [ "$TERM_PROGRAM" = "cursor" ]; then
     PARENT_COMM=$(ps -p $PPID -o comm= 2>/dev/null)
 
     if [[ "$PARENT_COMM" == *"Cursor"* ]]; then
-        URL_SCHEME="cursor"
+        BUNDLE_ID="com.todesktop.230313mzl4w4u92"
     elif [[ "$PARENT_COMM" == *"Code"* ]]; then
-        URL_SCHEME="vscode"
+        BUNDLE_ID="com.microsoft.VSCode"
     else
         # Fallback: check grandparent process
         GRANDPARENT_COMM=$(ps -p $(ps -p $PPID -o ppid= 2>/dev/null) -o comm= 2>/dev/null)
         if [[ "$GRANDPARENT_COMM" == *"Cursor"* ]]; then
-            URL_SCHEME="cursor"
+            BUNDLE_ID="com.todesktop.230313mzl4w4u92"
         elif pgrep -q "Cursor"; then
-            URL_SCHEME="cursor"
+            BUNDLE_ID="com.todesktop.230313mzl4w4u92"
         else
-            URL_SCHEME="vscode"
+            BUNDLE_ID="com.microsoft.VSCode"
         fi
     fi
 
-    # Use URL scheme to focus the correct workspace window
+    # Use -activate to focus the app without reopening the project
     terminal-notifier \
         -title "Claude Code [$WORKSPACE]" \
         -message "$MESSAGE" \
         -sound default \
-        -open "${URL_SCHEME}://file${PWD}"
+        -activate "$BUNDLE_ID"
     exit 0
 fi
 
