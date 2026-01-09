@@ -8,10 +8,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
 NOTIFY_SCRIPT="$CLAUDE_DIR/notify.sh"
+FOCUS_SCRIPT="$CLAUDE_DIR/focus-window.sh"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
-HAMMERSPOON_DIR="$HOME/.hammerspoon"
-HAMMERSPOON_INIT="$HAMMERSPOON_DIR/init.lua"
-HAMMERSPOON_MODULE="$HAMMERSPOON_DIR/claude-notify.lua"
 
 echo "Claude Code Notify - Installer"
 echo "==============================="
@@ -36,86 +34,54 @@ if ! command -v jq &> /dev/null; then
     fi
 fi
 
-# === Hammerspoon Setup ===
-echo "Setting up Hammerspoon (required for window focusing across Spaces)..."
+# === AeroSpace Setup ===
+echo "Checking for AeroSpace..."
 echo ""
 
-# Check if Hammerspoon is installed
-HAMMERSPOON_INSTALLED=false
-if [ -d "/Applications/Hammerspoon.app" ] || [ -d "$HOME/Applications/Hammerspoon.app" ]; then
-    HAMMERSPOON_INSTALLED=true
-fi
+AEROSPACE_INSTALLED=false
 
-if [ "$HAMMERSPOON_INSTALLED" = false ]; then
-    echo "Hammerspoon is not installed."
-    read -p "Install via Homebrew? (y/n) " -n 1 -r
+if command -v aerospace &> /dev/null; then
+    AEROSPACE_INSTALLED=true
+    echo "AeroSpace is already installed."
+else
+    echo "AeroSpace is a tiling window manager that provides reliable window"
+    echo "focusing across workspaces on macOS (including Sequoia 15.x)."
+    echo ""
+    read -p "Install AeroSpace via Homebrew? (y/n) " -n 1 -r
     echo ""
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        brew install --cask hammerspoon
-        HAMMERSPOON_INSTALLED=true
+        echo "Installing AeroSpace..."
+        brew install --cask nikitabobko/tap/aerospace
+        AEROSPACE_INSTALLED=true
         echo ""
-        echo "Hammerspoon installed. You'll need to:"
-        echo "  1. Open Hammerspoon from Applications"
+        echo "AeroSpace installed. You'll need to:"
+        echo "  1. Start AeroSpace (it should start automatically)"
         echo "  2. Grant Accessibility permissions when prompted"
         echo ""
-        read -p "Press Enter once Hammerspoon is running with permissions..." -r
     else
         echo ""
-        echo "Skipping Hammerspoon installation."
-        echo "Note: Without Hammerspoon, window focusing won't work across Spaces."
-        echo "You can install it later: brew install --cask hammerspoon"
+        echo "Skipping AeroSpace installation."
+        echo "Note: Without AeroSpace, window focusing won't work across workspaces."
+        echo "You can install it later: brew install --cask nikitabobko/tap/aerospace"
         echo ""
     fi
 fi
 
-# Setup Hammerspoon module if installed
-if [ "$HAMMERSPOON_INSTALLED" = true ]; then
-    # Create .hammerspoon directory if needed
-    mkdir -p "$HAMMERSPOON_DIR"
+# === terminal-notifier Setup ===
+echo "Checking for terminal-notifier..."
 
-    # Copy the Lua module
-    echo "Installing Hammerspoon module..."
-    cp "$SCRIPT_DIR/claude-notify.lua" "$HAMMERSPOON_MODULE"
-
-    # Create init.lua if it doesn't exist
-    if [ ! -f "$HAMMERSPOON_INIT" ]; then
-        echo '-- Hammerspoon configuration' > "$HAMMERSPOON_INIT"
-        echo 'require("hs.ipc")' >> "$HAMMERSPOON_INIT"
-        echo "" >> "$HAMMERSPOON_INIT"
-    fi
-
-    # Add require for claude-notify if not already present
-    if ! grep -q 'require("claude-notify")' "$HAMMERSPOON_INIT" 2>/dev/null; then
-        echo "" >> "$HAMMERSPOON_INIT"
-        echo '-- Claude Code notifications' >> "$HAMMERSPOON_INIT"
-        echo 'require("claude-notify")' >> "$HAMMERSPOON_INIT"
-        echo "Added claude-notify to Hammerspoon config"
+if ! command -v terminal-notifier &> /dev/null; then
+    echo "terminal-notifier is required for notifications."
+    read -p "Install terminal-notifier via Homebrew? (y/n) " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        brew install terminal-notifier
     else
-        echo "claude-notify already in Hammerspoon config"
+        echo "Please install terminal-notifier manually: brew install terminal-notifier"
+        exit 1
     fi
-
-    # Install hs CLI if not present
-    if ! command -v hs &> /dev/null; then
-        echo "Installing Hammerspoon CLI tool..."
-        # Try to install via hs.ipc.cliInstall()
-        if pgrep -x "Hammerspoon" > /dev/null; then
-            # Hammerspoon is running, try to install CLI
-            osascript -e 'tell application "Hammerspoon" to execute lua code "hs.ipc.cliInstall()"' 2>/dev/null || true
-            echo "CLI installation attempted. If 'hs' command is not available,"
-            echo "run this in Hammerspoon console: hs.ipc.cliInstall()"
-        else
-            echo "Note: Start Hammerspoon and run hs.ipc.cliInstall() in the console"
-            echo "to enable the 'hs' command line tool."
-        fi
-    else
-        echo "Hammerspoon CLI (hs) is already installed"
-    fi
-
-    # Reload Hammerspoon config
-    if pgrep -x "Hammerspoon" > /dev/null; then
-        echo "Reloading Hammerspoon config..."
-        osascript -e 'tell application "Hammerspoon" to execute lua code "hs.reload()"' 2>/dev/null || true
-    fi
+else
+    echo "terminal-notifier is already installed."
 fi
 
 # === Claude Code Setup ===
@@ -129,6 +95,11 @@ mkdir -p "$CLAUDE_DIR"
 echo "Installing notify.sh..."
 cp "$SCRIPT_DIR/notify.sh" "$NOTIFY_SCRIPT"
 chmod +x "$NOTIFY_SCRIPT"
+
+# Copy focus-window.sh
+echo "Installing focus-window.sh..."
+cp "$SCRIPT_DIR/focus-window.sh" "$FOCUS_SCRIPT"
+chmod +x "$FOCUS_SCRIPT"
 
 # Configure settings.json
 echo "Configuring Claude Code hooks..."
@@ -175,19 +146,17 @@ echo "Installation complete!"
 echo ""
 
 # Check what features are available
-if command -v hs &> /dev/null; then
-    echo "Status: Full functionality enabled (Hammerspoon)"
+if [ "$AEROSPACE_INSTALLED" = true ]; then
+    echo "Status: Full functionality enabled (AeroSpace)"
     echo "  - Notifications: Yes"
-    echo "  - Window focus across Spaces: Yes"
+    echo "  - Window focus across workspaces: Yes"
 else
-    echo "Status: Limited functionality (Hammerspoon CLI not available)"
-    echo "  - Notifications: Yes (via terminal-notifier fallback)"
-    echo "  - Window focus across Spaces: No"
+    echo "Status: Limited functionality (AeroSpace not installed)"
+    echo "  - Notifications: Yes"
+    echo "  - Window focus across workspaces: No"
     echo ""
     echo "To enable full functionality:"
-    echo "  1. Start Hammerspoon"
-    echo "  2. Run in Hammerspoon console: hs.ipc.cliInstall()"
-    echo "  3. Restart your terminal"
+    echo "  brew install --cask nikitabobko/tap/aerospace"
 fi
 
 echo ""

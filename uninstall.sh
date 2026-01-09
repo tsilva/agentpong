@@ -7,6 +7,7 @@ set -e
 
 CLAUDE_DIR="$HOME/.claude"
 NOTIFY_SCRIPT="$CLAUDE_DIR/notify.sh"
+FOCUS_SCRIPT="$CLAUDE_DIR/focus-window.sh"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 HAMMERSPOON_DIR="$HOME/.hammerspoon"
 HAMMERSPOON_INIT="$HAMMERSPOON_DIR/init.lua"
@@ -24,6 +25,14 @@ if [ -f "$NOTIFY_SCRIPT" ]; then
     echo "Removed $NOTIFY_SCRIPT"
 else
     echo "notify.sh not found (already removed?)"
+fi
+
+# Remove focus-window.sh
+if [ -f "$FOCUS_SCRIPT" ]; then
+    rm "$FOCUS_SCRIPT"
+    echo "Removed $FOCUS_SCRIPT"
+else
+    echo "focus-window.sh not found (already removed?)"
 fi
 
 # Remove Stop hook from settings.json
@@ -55,16 +64,14 @@ else
     echo "settings.json not found"
 fi
 
-# === Remove Hammerspoon Integration ===
+# === Remove Legacy Hammerspoon Integration (if present) ===
 echo ""
-echo "Cleaning up Hammerspoon integration..."
+echo "Cleaning up legacy Hammerspoon integration (if any)..."
 
 # Remove the Lua module
 if [ -f "$HAMMERSPOON_MODULE" ]; then
     rm "$HAMMERSPOON_MODULE"
     echo "Removed $HAMMERSPOON_MODULE"
-else
-    echo "Hammerspoon module not found (already removed?)"
 fi
 
 # Remove require line from init.lua
@@ -87,18 +94,16 @@ if [ -f "$HAMMERSPOON_INIT" ]; then
             echo "Reloading Hammerspoon config..."
             osascript -e 'tell application "Hammerspoon" to execute lua code "hs.reload()"' 2>/dev/null || true
         fi
-    else
-        echo "claude-notify not found in Hammerspoon config"
     fi
-else
-    echo "Hammerspoon init.lua not found"
 fi
 
 echo ""
 echo "Uninstallation complete!"
 echo ""
-echo "Note: Hammerspoon itself was not removed (you may have other uses for it)."
-echo "To fully remove Hammerspoon: brew uninstall --cask hammerspoon"
+echo "Note: AeroSpace and terminal-notifier were not removed (you may have other uses for them)."
+echo "To fully remove them:"
+echo "  brew uninstall --cask nikitabobko/tap/aerospace"
+echo "  brew uninstall terminal-notifier"
 echo ""
 echo "If you set up iTerm Triggers, remove them manually:"
 echo "  iTerm > Settings > Profiles > Advanced > Triggers"

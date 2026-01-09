@@ -5,39 +5,38 @@
 # Clicking the notification focuses the correct IDE window (even across Spaces).
 #
 # Supported terminals:
-#   - Cursor: Full support via Hammerspoon (notification + window focus across Spaces)
-#   - VS Code: Full support via Hammerspoon (notification + window focus across Spaces)
+#   - Cursor: Full support via AeroSpace (notification + window focus across workspaces)
+#   - VS Code: Full support via AeroSpace (notification + window focus across workspaces)
 #   - iTerm2: Notification only (hooks don't fire, use iTerm Triggers)
 #
 # Usage: notify.sh [message]
 #
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Use Claude's project directory (launch path), fall back to PWD for manual testing
 LAUNCH_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 WORKSPACE="${LAUNCH_DIR##*/}"
 MESSAGE="${1:-Ready for input}"
 
-# Escape single quotes for Lua string
-escape_lua_string() {
-    echo "$1" | sed "s/'/\\\\'/g"
-}
-
-WORKSPACE_ESCAPED=$(escape_lua_string "$WORKSPACE")
-MESSAGE_ESCAPED=$(escape_lua_string "$MESSAGE")
-
-# Use Hammerspoon if the 'hs' CLI is available
-if command -v hs &> /dev/null; then
-    hs -c "claudeNotify('$WORKSPACE_ESCAPED', '$MESSAGE_ESCAPED')" 2>/dev/null
-    exit 0
-fi
-
-# Fallback: terminal-notifier (won't switch Spaces properly)
+# Check for required dependencies
 if ! command -v terminal-notifier &> /dev/null; then
-    echo "Error: Neither Hammerspoon CLI (hs) nor terminal-notifier is installed."
-    echo "Run install.sh to set up Hammerspoon, or install terminal-notifier manually."
+    echo "Error: terminal-notifier is not installed."
+    echo "Run install.sh or install manually: brew install terminal-notifier"
     exit 1
 fi
 
+# AeroSpace mode: notification with window focusing on click
+if command -v aerospace &> /dev/null; then
+    terminal-notifier \
+        -title "Claude Code [$WORKSPACE]" \
+        -message "$MESSAGE" \
+        -sound default \
+        -execute "$SCRIPT_DIR/focus-window.sh '$WORKSPACE'"
+    exit 0
+fi
+
+# Fallback: notification only (no window focusing without AeroSpace)
 # iTerm2 fallback
 if [ "$TERM_PROGRAM" = "iTerm.app" ]; then
     terminal-notifier \
