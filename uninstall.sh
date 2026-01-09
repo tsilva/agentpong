@@ -8,10 +8,15 @@ set -e
 CLAUDE_DIR="$HOME/.claude"
 NOTIFY_SCRIPT="$CLAUDE_DIR/notify.sh"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
+HAMMERSPOON_DIR="$HOME/.hammerspoon"
+HAMMERSPOON_INIT="$HAMMERSPOON_DIR/init.lua"
+HAMMERSPOON_MODULE="$HAMMERSPOON_DIR/claude-notify.lua"
 
 echo "Claude Code Notify - Uninstaller"
 echo "================================="
 echo ""
+
+# === Remove Claude Code Integration ===
 
 # Remove notify.sh
 if [ -f "$NOTIFY_SCRIPT" ]; then
@@ -50,9 +55,51 @@ else
     echo "settings.json not found"
 fi
 
+# === Remove Hammerspoon Integration ===
+echo ""
+echo "Cleaning up Hammerspoon integration..."
+
+# Remove the Lua module
+if [ -f "$HAMMERSPOON_MODULE" ]; then
+    rm "$HAMMERSPOON_MODULE"
+    echo "Removed $HAMMERSPOON_MODULE"
+else
+    echo "Hammerspoon module not found (already removed?)"
+fi
+
+# Remove require line from init.lua
+if [ -f "$HAMMERSPOON_INIT" ]; then
+    if grep -q 'require("claude-notify")' "$HAMMERSPOON_INIT" 2>/dev/null; then
+        # Create backup
+        cp "$HAMMERSPOON_INIT" "$HAMMERSPOON_INIT.backup"
+
+        # Remove the require line and the comment above it
+        sed -i '' '/^-- Claude Code notifications$/d' "$HAMMERSPOON_INIT"
+        sed -i '' '/require("claude-notify")/d' "$HAMMERSPOON_INIT"
+
+        # Remove any resulting double blank lines
+        sed -i '' '/^$/N;/^\n$/d' "$HAMMERSPOON_INIT"
+
+        echo "Removed claude-notify from Hammerspoon config"
+
+        # Reload Hammerspoon config if running
+        if pgrep -x "Hammerspoon" > /dev/null; then
+            echo "Reloading Hammerspoon config..."
+            osascript -e 'tell application "Hammerspoon" to execute lua code "hs.reload()"' 2>/dev/null || true
+        fi
+    else
+        echo "claude-notify not found in Hammerspoon config"
+    fi
+else
+    echo "Hammerspoon init.lua not found"
+fi
+
 echo ""
 echo "Uninstallation complete!"
 echo ""
-echo "Note: If you set up iTerm Triggers, remove them manually:"
+echo "Note: Hammerspoon itself was not removed (you may have other uses for it)."
+echo "To fully remove Hammerspoon: brew uninstall --cask hammerspoon"
+echo ""
+echo "If you set up iTerm Triggers, remove them manually:"
 echo "  iTerm > Settings > Profiles > Advanced > Triggers"
 echo ""
