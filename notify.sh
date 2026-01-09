@@ -46,16 +46,25 @@ if [ "$TERM_PROGRAM" = "vscode" ] || [ "$TERM_PROGRAM" = "cursor" ]; then
     fi
 
     if $IS_CURSOR; then
-        URL_SCHEME="cursor://file${PWD}"
+        APP_NAME="Cursor"
     else
-        URL_SCHEME="vscode://file${PWD}"
+        APP_NAME="Code"
     fi
+
+    # Use AppleScript to activate app and raise the specific workspace window
+    SCRIPT="tell application \"$APP_NAME\" to activate
+tell application \"System Events\" to tell process \"$APP_NAME\"
+    set frontmost to true
+    try
+        perform action \"AXRaise\" of (first window whose name contains \"$WORKSPACE\")
+    end try
+end tell"
 
     terminal-notifier \
         -title "Claude Code [$WORKSPACE]" \
         -message "$MESSAGE" \
         -sound default \
-        -open "$URL_SCHEME"
+        -execute "osascript -e '$SCRIPT'"
     exit 0
 fi
 
