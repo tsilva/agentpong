@@ -31,27 +31,30 @@ if [ "$TERM_PROGRAM" = "vscode" ] || [ "$TERM_PROGRAM" = "cursor" ]; then
     PARENT_COMM=$(ps -p $PPID -o comm= 2>/dev/null)
 
     if [[ "$PARENT_COMM" == *"Cursor"* ]]; then
-        BUNDLE_ID="com.todesktop.230313mzl4w4u92"
+        PROCESS_NAME="Cursor"
     elif [[ "$PARENT_COMM" == *"Code"* ]]; then
-        BUNDLE_ID="com.microsoft.VSCode"
+        PROCESS_NAME="Code"
     else
         # Fallback: check grandparent process
         GRANDPARENT_COMM=$(ps -p $(ps -p $PPID -o ppid= 2>/dev/null) -o comm= 2>/dev/null)
         if [[ "$GRANDPARENT_COMM" == *"Cursor"* ]]; then
-            BUNDLE_ID="com.todesktop.230313mzl4w4u92"
+            PROCESS_NAME="Cursor"
         elif pgrep -q "Cursor"; then
-            BUNDLE_ID="com.todesktop.230313mzl4w4u92"
+            PROCESS_NAME="Cursor"
         else
-            BUNDLE_ID="com.microsoft.VSCode"
+            PROCESS_NAME="Code"
         fi
     fi
 
-    # Use -activate to focus the app without reopening the project
+    # Build AppleScript command to focus specific window by workspace name
+    # Uses System Events to find window whose title contains the workspace folder name
+    FOCUS_CMD="osascript -e 'tell application \"System Events\" to tell process \"$PROCESS_NAME\" to set frontmost to true' -e 'tell application \"System Events\" to tell process \"$PROCESS_NAME\" to perform action \"AXRaise\" of (first window whose name contains \"$WORKSPACE\")'"
+
     terminal-notifier \
         -title "Claude Code [$WORKSPACE]" \
         -message "$MESSAGE" \
         -sound default \
-        -activate "$BUNDLE_ID"
+        -execute "$FOCUS_CMD"
     exit 0
 fi
 
