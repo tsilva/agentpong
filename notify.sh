@@ -11,7 +11,9 @@
 # Usage: notify.sh [message]
 #
 
-WORKSPACE="${PWD##*/}"
+# Use Claude's project directory (launch path), fall back to PWD for manual testing
+LAUNCH_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
+WORKSPACE="${LAUNCH_DIR##*/}"
 MESSAGE="${1:-Ready for input}"
 
 # iTerm2
