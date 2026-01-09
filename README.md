@@ -78,11 +78,11 @@ If you set up iTerm Triggers, remove them manually in iTerm Settings.
 
 ### Clicking notification doesn't focus window
 - This is expected for iTerm2 (app-level focus only)
-- For Cursor/VS Code, ensure you have the correct editor URL scheme
+- For Cursor/VS Code, the script automatically detects your editor and uses the correct URL scheme
 
 ### Wrong window focuses (multiple Cursor windows)
-- The URL scheme should focus the window with the matching workspace
-- If issues persist, ensure each window has a different workspace/folder open
+- Ensure each window has a different workspace/folder open
+- The URL scheme uses the current working directory to focus the correct window
 
 ## License
 
