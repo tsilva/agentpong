@@ -27,34 +27,35 @@ fi
 
 # VS Code / Cursor
 if [ "$TERM_PROGRAM" = "vscode" ] || [ "$TERM_PROGRAM" = "cursor" ]; then
-    # Detect which editor by checking parent process
-    PARENT_COMM=$(ps -p $PPID -o comm= 2>/dev/null)
-
-    if [[ "$PARENT_COMM" == *"Cursor"* ]]; then
-        PROCESS_NAME="Cursor"
-    elif [[ "$PARENT_COMM" == *"Code"* ]]; then
-        PROCESS_NAME="Code"
-    else
-        # Fallback: check grandparent process
-        GRANDPARENT_COMM=$(ps -p $(ps -p $PPID -o ppid= 2>/dev/null) -o comm= 2>/dev/null)
-        if [[ "$GRANDPARENT_COMM" == *"Cursor"* ]]; then
-            PROCESS_NAME="Cursor"
-        elif pgrep -q "Cursor"; then
-            PROCESS_NAME="Cursor"
-        else
-            PROCESS_NAME="Code"
+    # Detect which editor by walking up the process tree
+    IS_CURSOR=false
+    CHECK_PID=$PPID
+    for _ in 1 2 3 4 5; do
+        COMM=$(ps -p $CHECK_PID -o comm= 2>/dev/null)
+        if [[ "$COMM" == *"Cursor"* ]]; then
+            IS_CURSOR=true
+            break
         fi
+        CHECK_PID=$(ps -p $CHECK_PID -o ppid= 2>/dev/null)
+        [ -z "$CHECK_PID" ] && break
+    done
+
+    # Fallback: check if Cursor is running
+    if ! $IS_CURSOR && pgrep -q "Cursor"; then
+        IS_CURSOR=true
     fi
 
-    # Build AppleScript command to focus specific window by workspace name
-    # Uses System Events to find window whose title contains the workspace folder name
-    FOCUS_CMD="osascript -e 'tell application \"System Events\" to tell process \"$PROCESS_NAME\" to set frontmost to true' -e 'tell application \"System Events\" to tell process \"$PROCESS_NAME\" to perform action \"AXRaise\" of (first window whose name contains \"$WORKSPACE\")'"
+    if $IS_CURSOR; then
+        URL_SCHEME="cursor://file${PWD}"
+    else
+        URL_SCHEME="vscode://file${PWD}"
+    fi
 
     terminal-notifier \
         -title "Claude Code [$WORKSPACE]" \
         -message "$MESSAGE" \
         -sound default \
-        -execute "$FOCUS_CMD"
+        -open "$URL_SCHEME"
     exit 0
 fi
 
