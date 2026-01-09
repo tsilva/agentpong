@@ -26,8 +26,8 @@ if [ "$TERM_PROGRAM" = "iTerm.app" ]; then
     exit 0
 fi
 
-# VS Code / Cursor
-if [ "$TERM_PROGRAM" = "cursor" ]; then
+# Cursor
+if [ "$TERM_PROGRAM" = "vscode" ]; then
     # Use AppleScript to activate app and raise the specific workspace window
     SCRIPT="tell application Cursor to activate
 tell application \"System Events\" to tell process Cursor
