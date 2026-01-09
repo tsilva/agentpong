@@ -16,7 +16,7 @@ Three bash scripts form the complete system:
 
 ## Key Implementation Details
 
-The notification script uses process inspection (`ps -p $PPID`) to detect whether it's running in Cursor or VS Code, since both set `TERM_PROGRAM=vscode`. It constructs URL schemes like `cursor://file/path/to/workspace` to focus the specific window.
+The notification script walks up the process tree (up to 5 levels) to detect whether it's running in Cursor or VS Code, since both set `TERM_PROGRAM=vscode` and Claude runs several process levels deep. It uses URL schemes (`cursor://file/path` or `vscode://file/path`) with the `-open` flag to focus the specific workspace window when clicked.
 
 Claude Code hooks only work in IDE-integrated terminals (via SSE connection). For standalone terminals like iTerm2, users must configure iTerm's Triggers feature as a workaround.
 
