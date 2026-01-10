@@ -104,12 +104,24 @@ chmod +x "$FOCUS_SCRIPT"
 # Configure settings.json
 echo "Configuring Claude Code hooks..."
 
-HOOK_CONFIG='{
+# Stop hook - fires when Claude finishes a task
+STOP_HOOK_CONFIG='{
   "matcher": "",
   "hooks": [
     {
       "type": "command",
       "command": "'"$NOTIFY_SCRIPT"' '\''Ready for input'\''"
+    }
+  ]
+}'
+
+# Notification hook - fires when permission prompt appears
+NOTIFICATION_HOOK_CONFIG='{
+  "matcher": "permission_prompt",
+  "hooks": [
+    {
+      "type": "command",
+      "command": "'"$NOTIFY_SCRIPT"' '\''Permission required'\''"
     }
   ]
 }'
@@ -125,20 +137,34 @@ if [ -f "$SETTINGS_FILE" ]; then
         read -p "Replace existing Stop hook? (y/n) " -n 1 -r
         echo ""
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            # Replace Stop hook
-            jq --argjson hook "[$HOOK_CONFIG]" '.hooks.Stop = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
+            jq --argjson hook "[$STOP_HOOK_CONFIG]" '.hooks.Stop = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
             mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
         else
             echo "Keeping existing Stop hook."
         fi
     else
-        # Add Stop hook to existing hooks
-        jq --argjson hook "[$HOOK_CONFIG]" '.hooks.Stop = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
+        jq --argjson hook "[$STOP_HOOK_CONFIG]" '.hooks.Stop = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
+        mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+    fi
+
+    # Check if Notification hook already exists
+    if jq -e '.hooks.Notification' "$SETTINGS_FILE" > /dev/null 2>&1; then
+        echo "Notification hook already exists in settings.json"
+        read -p "Replace existing Notification hook? (y/n) " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            jq --argjson hook "[$NOTIFICATION_HOOK_CONFIG]" '.hooks.Notification = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
+            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+        else
+            echo "Keeping existing Notification hook."
+        fi
+    else
+        jq --argjson hook "[$NOTIFICATION_HOOK_CONFIG]" '.hooks.Notification = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
         mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
     fi
 else
-    # Create new settings.json
-    echo "{\"hooks\":{\"Stop\":[$HOOK_CONFIG]}}" | jq '.' > "$SETTINGS_FILE"
+    # Create new settings.json with both hooks
+    echo "{\"hooks\":{\"Stop\":[$STOP_HOOK_CONFIG],\"Notification\":[$NOTIFICATION_HOOK_CONFIG]}}" | jq '.' > "$SETTINGS_FILE"
 fi
 
 echo ""
