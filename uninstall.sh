@@ -35,30 +35,38 @@ else
     echo "focus-window.sh not found (already removed?)"
 fi
 
-# Remove Stop hook from settings.json
+# Remove hooks from settings.json
 if [ -f "$SETTINGS_FILE" ]; then
     if command -v jq &> /dev/null; then
-        if jq -e '.hooks.Stop' "$SETTINGS_FILE" > /dev/null 2>&1; then
-            # Backup before modifying
-            cp "$SETTINGS_FILE" "$SETTINGS_FILE.backup"
+        # Backup before modifying
+        cp "$SETTINGS_FILE" "$SETTINGS_FILE.backup"
 
-            # Remove Stop hook
+        # Remove Stop hook
+        if jq -e '.hooks.Stop' "$SETTINGS_FILE" > /dev/null 2>&1; then
             jq 'del(.hooks.Stop)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
             mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-
-            # Clean up empty hooks object if needed
-            if jq -e '.hooks == {}' "$SETTINGS_FILE" > /dev/null 2>&1; then
-                jq 'del(.hooks)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
-                mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            fi
-
             echo "Removed Stop hook from settings.json"
         else
             echo "No Stop hook found in settings.json"
         fi
+
+        # Remove Notification hook
+        if jq -e '.hooks.Notification' "$SETTINGS_FILE" > /dev/null 2>&1; then
+            jq 'del(.hooks.Notification)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
+            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+            echo "Removed Notification hook from settings.json"
+        else
+            echo "No Notification hook found in settings.json"
+        fi
+
+        # Clean up empty hooks object if needed
+        if jq -e '.hooks == {}' "$SETTINGS_FILE" > /dev/null 2>&1; then
+            jq 'del(.hooks)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
+            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+        fi
     else
-        echo "Warning: jq not installed, cannot automatically remove hook from settings.json"
-        echo "Please manually remove the Stop hook from $SETTINGS_FILE"
+        echo "Warning: jq not installed, cannot automatically remove hooks from settings.json"
+        echo "Please manually remove the Stop and Notification hooks from $SETTINGS_FILE"
     fi
 else
     echo "settings.json not found"
