@@ -115,9 +115,9 @@ STOP_HOOK_CONFIG='{
   ]
 }'
 
-# Notification hook - fires when permission prompt appears
-NOTIFICATION_HOOK_CONFIG='{
-  "matcher": "permission_prompt",
+# PermissionRequest hook - fires when permission dialog is shown
+PERMISSION_HOOK_CONFIG='{
+  "matcher": "",
   "hooks": [
     {
       "type": "command",
@@ -147,24 +147,24 @@ if [ -f "$SETTINGS_FILE" ]; then
         mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
     fi
 
-    # Check if Notification hook already exists
-    if jq -e '.hooks.Notification' "$SETTINGS_FILE" > /dev/null 2>&1; then
-        echo "Notification hook already exists in settings.json"
-        read -p "Replace existing Notification hook? (y/n) " -n 1 -r
+    # Check if PermissionRequest hook already exists
+    if jq -e '.hooks.PermissionRequest' "$SETTINGS_FILE" > /dev/null 2>&1; then
+        echo "PermissionRequest hook already exists in settings.json"
+        read -p "Replace existing PermissionRequest hook? (y/n) " -n 1 -r
         echo ""
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            jq --argjson hook "[$NOTIFICATION_HOOK_CONFIG]" '.hooks.Notification = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
+            jq --argjson hook "[$PERMISSION_HOOK_CONFIG]" '.hooks.PermissionRequest = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
             mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
         else
-            echo "Keeping existing Notification hook."
+            echo "Keeping existing PermissionRequest hook."
         fi
     else
-        jq --argjson hook "[$NOTIFICATION_HOOK_CONFIG]" '.hooks.Notification = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
+        jq --argjson hook "[$PERMISSION_HOOK_CONFIG]" '.hooks.PermissionRequest = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
         mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
     fi
 else
     # Create new settings.json with both hooks
-    echo "{\"hooks\":{\"Stop\":[$STOP_HOOK_CONFIG],\"Notification\":[$NOTIFICATION_HOOK_CONFIG]}}" | jq '.' > "$SETTINGS_FILE"
+    echo "{\"hooks\":{\"Stop\":[$STOP_HOOK_CONFIG],\"Notification\":[$PERMISSION_HOOK_CONFIG]}}" | jq '.' > "$SETTINGS_FILE"
 fi
 
 echo ""

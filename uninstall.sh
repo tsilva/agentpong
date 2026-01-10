@@ -50,13 +50,20 @@ if [ -f "$SETTINGS_FILE" ]; then
             echo "No Stop hook found in settings.json"
         fi
 
-        # Remove Notification hook
+        # Remove PermissionRequest hook
+        if jq -e '.hooks.PermissionRequest' "$SETTINGS_FILE" > /dev/null 2>&1; then
+            jq 'del(.hooks.PermissionRequest)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
+            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+            echo "Removed PermissionRequest hook from settings.json"
+        else
+            echo "No PermissionRequest hook found in settings.json"
+        fi
+
+        # Remove legacy Notification hook (if present from older versions)
         if jq -e '.hooks.Notification' "$SETTINGS_FILE" > /dev/null 2>&1; then
             jq 'del(.hooks.Notification)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
             mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            echo "Removed Notification hook from settings.json"
-        else
-            echo "No Notification hook found in settings.json"
+            echo "Removed legacy Notification hook from settings.json"
         fi
 
         # Clean up empty hooks object if needed
@@ -66,7 +73,7 @@ if [ -f "$SETTINGS_FILE" ]; then
         fi
     else
         echo "Warning: jq not installed, cannot automatically remove hooks from settings.json"
-        echo "Please manually remove the Stop and Notification hooks from $SETTINGS_FILE"
+        echo "Please manually remove the Stop and PermissionRequest hooks from $SETTINGS_FILE"
     fi
 else
     echo "settings.json not found"

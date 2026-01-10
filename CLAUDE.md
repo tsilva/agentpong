@@ -12,7 +12,7 @@ Four files form the complete system:
 
 - **notify.sh** - Shell script called by Claude Code hooks. Uses terminal-notifier with `-execute` to trigger focus-window.sh on click when AeroSpace is available.
 - **focus-window.sh** - AeroSpace window focusing script executed when notification is clicked. Uses `aerospace list-windows` to find the correct window and `aerospace focus` to switch workspace and focus.
-- **install.sh** - Installs AeroSpace and terminal-notifier (if needed), copies scripts to `~/.claude/`, and configures the `Stop` hook.
+- **install.sh** - Installs AeroSpace and terminal-notifier (if needed), copies scripts to `~/.claude/`, and configures the `Stop` and `PermissionRequest` hooks.
 - **uninstall.sh** - Removes the notification scripts and cleans up configurations.
 
 ## Key Implementation Details
@@ -23,7 +23,7 @@ The system uses AeroSpace because:
 - AeroSpace uses its own virtual workspace abstraction that works reliably on Sequoia without requiring SIP to be disabled
 
 Flow:
-1. Claude Code `Stop` hook fires when Claude finishes a task
+1. Claude Code `Stop` hook fires when Claude finishes a task, or `PermissionRequest` hook fires when Claude needs permission
 2. `notify.sh` is executed with workspace name from `CLAUDE_PROJECT_DIR`
 3. Script calls terminal-notifier with `-execute` pointing to focus-window.sh
 4. Notification appears with workspace name in title
@@ -61,5 +61,5 @@ Test cross-workspace focusing:
 Test installation/uninstallation by checking:
 - `~/.claude/notify.sh` exists and is executable
 - `~/.claude/focus-window.sh` exists and is executable
-- `~/.claude/settings.json` contains the `Stop` hook
+- `~/.claude/settings.json` contains the `Stop` and `PermissionRequest` hooks
 - `aerospace list-windows` works
