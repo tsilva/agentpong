@@ -1,21 +1,21 @@
 <div align="center">
   <img src="logo.png" alt="claude-code-notify" width="280"/>
 
-  [![macOS](https://img.shields.io/badge/macOS-Sequoia%2015.x-blue?logo=apple)](https://www.apple.com/macos/)
-  [![Shell](https://img.shields.io/badge/Shell-Bash-4EAA25?logo=gnu-bash&logoColor=white)](https://www.gnu.org/software/bash/)
-  [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-  [![AeroSpace](https://img.shields.io/badge/AeroSpace-Tiling%20WM-purple)](https://github.com/nikitabobko/AeroSpace)
+  [![GitHub stars](https://img.shields.io/github/stars/tsilva/claude-code-notify?style=flat&logo=github)](https://github.com/tsilva/claude-code-notify)
+  [![macOS](https://img.shields.io/badge/macOS-Sequoia%2015.x-blue?logo=apple)](https://www.apple.com/macos/sequoia/)
+  [![License](https://img.shields.io/github/license/tsilva/claude-code-notify)](LICENSE)
+  [![AeroSpace](https://img.shields.io/badge/AeroSpace-Tiling%20WM-8B5CF6?logo=apple)](https://github.com/nikitabobko/AeroSpace)
 
   **Never miss when Claude Code needs your attention — get desktop notifications that focus the right window, even across workspaces**
 
-  [Installation](#installation) · [Usage](#usage) · [Troubleshooting](#troubleshooting)
+  [Installation](#installation) · [Usage](#usage) · [How It Works](#how-it-works) · [Troubleshooting](#troubleshooting)
 </div>
 
 ## Overview
 
 claude-code-notify sends macOS desktop notifications when Claude Code finishes a task or requests permission. Click the notification to instantly switch to the correct IDE window — even if it's on a different workspace.
 
-Built for developers who run Claude Code in the background while working on other things. Stop constantly checking if Claude is done.
+Built for developers who run Claude Code in the background while multitasking. Stop constantly checking if Claude is done.
 
 ## Features
 
@@ -133,6 +133,10 @@ brew uninstall terminal-notifier
 
 Claude Code hooks only work in IDE-integrated terminals (Cursor/VS Code). For standalone terminals like iTerm2, use the Triggers workaround described above.
 
+## Contributing
+
+Contributions welcome! Feel free to open issues or submit pull requests.
+
 ## License
 
-MIT
+[MIT](LICENSE)
