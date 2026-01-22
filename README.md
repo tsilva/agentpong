@@ -1,12 +1,12 @@
 <div align="center">
-  <img src="logo.png" alt="claude-code-notify" width="280"/>
+  <img src="logo.png" alt="claude-code-notify" width="512"/>
 
   [![GitHub stars](https://img.shields.io/github/stars/tsilva/claude-code-notify?style=flat&logo=github)](https://github.com/tsilva/claude-code-notify)
   [![macOS](https://img.shields.io/badge/macOS-Sequoia%2015.x-blue?logo=apple)](https://www.apple.com/macos/sequoia/)
   [![License](https://img.shields.io/github/license/tsilva/claude-code-notify)](LICENSE)
   [![AeroSpace](https://img.shields.io/badge/AeroSpace-Tiling%20WM-8B5CF6?logo=apple)](https://github.com/nikitabobko/AeroSpace)
 
-  **Never miss when Claude Code needs your attention — get desktop notifications that focus the right window, even across workspaces**
+  **🔔 Never miss when Claude Code needs your attention — get desktop notifications that focus the right window, even across workspaces**
 
   [Installation](#installation) · [Usage](#usage) · [How It Works](#how-it-works) · [Troubleshooting](#troubleshooting)
 </div>
