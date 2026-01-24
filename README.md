@@ -1,6 +1,8 @@
 <div align="center">
   <img src="logo.png" alt="claude-code-notify" width="512"/>
 
+  # claude-code-notify
+
   [![GitHub stars](https://img.shields.io/github/stars/tsilva/claude-code-notify?style=flat&logo=github)](https://github.com/tsilva/claude-code-notify)
   [![macOS](https://img.shields.io/badge/macOS-Sequoia%2015.x-blue?logo=apple)](https://www.apple.com/macos/sequoia/)
   [![License](https://img.shields.io/github/license/tsilva/claude-code-notify)](LICENSE)
