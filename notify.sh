@@ -12,6 +12,11 @@
 # Usage: notify.sh [message]
 #
 
+# Skip notifications for SDK-spawned sessions (e.g., claude-code-bridge)
+if [ -n "$CLAUDE_CODE_BRIDGE" ]; then
+    exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Use Claude's project directory (launch path), fall back to PWD for manual testing
