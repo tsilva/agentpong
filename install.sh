@@ -8,8 +8,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
 NOTIFY_SCRIPT="$CLAUDE_DIR/notify.sh"
-FOCUS_SCRIPT="$CLAUDE_DIR/focus-window.sh"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
+FOCUS_SYMLINK="$CLAUDE_DIR/focus-window.sh"
 
 echo "Claude Code Notify - Installer"
 echo "==============================="
@@ -21,6 +21,25 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
     exit 1
 fi
 
+# Check for aerospace-setup dependency (provides focus-window.sh symlink)
+echo "Checking for aerospace-setup..."
+if [ ! -L "$FOCUS_SYMLINK" ]; then
+    echo ""
+    echo "ERROR: aerospace-setup is required for click-to-focus functionality."
+    echo ""
+    echo "The symlink ~/.claude/focus-window.sh was not found."
+    echo ""
+    echo "Please install aerospace-setup first:"
+    echo "  git clone https://github.com/tsilva/aerospace-setup.git"
+    echo "  cd aerospace-setup"
+    echo "  ./install.sh"
+    echo ""
+    echo "Then run this installer again."
+    exit 1
+fi
+echo "✓ aerospace-setup is installed (focus-window.sh symlink found)"
+echo ""
+
 # Check for jq (needed for JSON manipulation)
 if ! command -v jq &> /dev/null; then
     echo "jq is required but not installed."
@@ -31,39 +50,6 @@ if ! command -v jq &> /dev/null; then
     else
         echo "Please install jq manually: brew install jq"
         exit 1
-    fi
-fi
-
-# === AeroSpace Setup ===
-echo "Checking for AeroSpace..."
-echo ""
-
-AEROSPACE_INSTALLED=false
-
-if command -v aerospace &> /dev/null; then
-    AEROSPACE_INSTALLED=true
-    echo "AeroSpace is already installed."
-else
-    echo "AeroSpace is a tiling window manager that provides reliable window"
-    echo "focusing across workspaces on macOS (including Sequoia 15.x)."
-    echo ""
-    read -p "Install AeroSpace via Homebrew? (y/n) " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo "Installing AeroSpace..."
-        brew install --cask nikitabobko/tap/aerospace
-        AEROSPACE_INSTALLED=true
-        echo ""
-        echo "AeroSpace installed. You'll need to:"
-        echo "  1. Start AeroSpace (it should start automatically)"
-        echo "  2. Grant Accessibility permissions when prompted"
-        echo ""
-    else
-        echo ""
-        echo "Skipping AeroSpace installation."
-        echo "Note: Without AeroSpace, window focusing won't work across workspaces."
-        echo "You can install it later: brew install --cask nikitabobko/tap/aerospace"
-        echo ""
     fi
 fi
 
@@ -81,7 +67,7 @@ if ! command -v terminal-notifier &> /dev/null; then
         exit 1
     fi
 else
-    echo "terminal-notifier is already installed."
+    echo "✓ terminal-notifier is already installed"
 fi
 
 # === Claude Code Setup ===
@@ -95,11 +81,6 @@ mkdir -p "$CLAUDE_DIR"
 echo "Installing notify.sh..."
 cp "$SCRIPT_DIR/notify.sh" "$NOTIFY_SCRIPT"
 chmod +x "$NOTIFY_SCRIPT"
-
-# Copy focus-window.sh
-echo "Installing focus-window.sh..."
-cp "$SCRIPT_DIR/focus-window.sh" "$FOCUS_SCRIPT"
-chmod +x "$FOCUS_SCRIPT"
 
 # Configure settings.json
 echo "Configuring Claude Code hooks..."
@@ -164,27 +145,15 @@ if [ -f "$SETTINGS_FILE" ]; then
     fi
 else
     # Create new settings.json with both hooks
-    echo "{\"hooks\":{\"Stop\":[$STOP_HOOK_CONFIG],\"Notification\":[$PERMISSION_HOOK_CONFIG]}}" | jq '.' > "$SETTINGS_FILE"
+    echo "{\"hooks\":{\"Stop\":[$STOP_HOOK_CONFIG],\"PermissionRequest\":[$PERMISSION_HOOK_CONFIG]}}" | jq '.' > "$SETTINGS_FILE"
 fi
 
 echo ""
 echo "Installation complete!"
 echo ""
-
-# Check what features are available
-if [ "$AEROSPACE_INSTALLED" = true ]; then
-    echo "Status: Full functionality enabled (AeroSpace)"
-    echo "  - Notifications: Yes"
-    echo "  - Window focus across workspaces: Yes"
-else
-    echo "Status: Limited functionality (AeroSpace not installed)"
-    echo "  - Notifications: Yes"
-    echo "  - Window focus across workspaces: No"
-    echo ""
-    echo "To enable full functionality:"
-    echo "  brew install --cask nikitabobko/tap/aerospace"
-fi
-
+echo "Features enabled:"
+echo "  - Notifications: Yes"
+echo "  - Window focus across workspaces: Yes (via aerospace-setup)"
 echo ""
 echo "Usage:"
 echo "  - Cursor/VS Code: Notifications work automatically."
