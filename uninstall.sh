@@ -17,6 +17,54 @@ echo "Claude Code Notify - Uninstaller"
 echo "================================="
 echo ""
 
+# === Preview what will be done ===
+echo "This will perform the following actions:"
+echo ""
+
+# Check notify.sh
+if [ -f "$NOTIFY_SCRIPT" ]; then
+    echo "  - Remove $NOTIFY_SCRIPT"
+fi
+
+# Check focus-window.sh
+if [ -f "$FOCUS_SCRIPT" ]; then
+    echo "  - Remove $FOCUS_SCRIPT"
+fi
+
+# Check settings.json hooks
+if [ -f "$SETTINGS_FILE" ] && command -v jq &> /dev/null; then
+    if jq -e '.hooks.Stop' "$SETTINGS_FILE" > /dev/null 2>&1; then
+        echo "  - Remove Stop hook from settings.json"
+    fi
+    if jq -e '.hooks.PermissionRequest' "$SETTINGS_FILE" > /dev/null 2>&1; then
+        echo "  - Remove PermissionRequest hook from settings.json"
+    fi
+    if jq -e '.hooks.Notification' "$SETTINGS_FILE" > /dev/null 2>&1; then
+        echo "  - Remove legacy Notification hook from settings.json"
+    fi
+elif [ -f "$SETTINGS_FILE" ]; then
+    echo "  - Warning: jq not installed, cannot check/remove hooks automatically"
+fi
+
+# Check legacy Hammerspoon
+if [ -f "$HAMMERSPOON_MODULE" ]; then
+    echo "  - Remove $HAMMERSPOON_MODULE"
+fi
+if [ -f "$HAMMERSPOON_INIT" ] && grep -q 'require("claude-notify")' "$HAMMERSPOON_INIT" 2>/dev/null; then
+    echo "  - Remove claude-notify from Hammerspoon config"
+fi
+
+echo ""
+read -p "Proceed with uninstallation? [y/N] " -n 1 -r
+echo ""
+
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Uninstallation cancelled."
+    exit 0
+fi
+
+echo ""
+
 # === Remove Claude Code Integration ===
 
 # Remove notify.sh
