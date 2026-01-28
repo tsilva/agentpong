@@ -29,10 +29,6 @@ while true; do
     # Default message if none provided
     [ -z "$message" ] && message="Ready for input"
 
-    # Send notification via terminal-notifier (in background to not block)
-    terminal-notifier \
-        -title "Claude Code [$workspace]" \
-        -message "$message" \
-        -sound default \
-        -execute "$HOME/.claude/focus-window.sh '$workspace'" &
+    # Delegate to notify.sh (single terminal-notifier codepath)
+    CLAUDE_PROJECT_DIR="/fake/$workspace" "$HOME/.claude/notify.sh" "$message"
 done
