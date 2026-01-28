@@ -11,6 +11,15 @@ NOTIFY_SCRIPT="$CLAUDE_DIR/notify.sh"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 FOCUS_SYMLINK="$CLAUDE_DIR/focus-window.sh"
 
+# Sandbox support paths
+SANDBOX_DIR="$HOME/.claude-sandbox"
+SANDBOX_CONFIG_DIR="$SANDBOX_DIR/claude-config"
+SANDBOX_NOTIFY_SCRIPT="$SANDBOX_CONFIG_DIR/notify.sh"
+SANDBOX_SETTINGS_FILE="$SANDBOX_CONFIG_DIR/settings.json"
+SANDBOX_HANDLER="$CLAUDE_DIR/notify-handler.sh"
+SANDBOX_PLIST_TEMPLATE="$SCRIPT_DIR/com.claude-code-notify.sandbox.plist.template"
+SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.claude-code-notify.sandbox.plist"
+
 echo "Claude Code Notify - Installer"
 echo "==============================="
 echo ""
@@ -169,3 +178,90 @@ echo "       Action: Run Command..."
 echo "       Parameters: $NOTIFY_SCRIPT \"Ready for input\""
 echo "       Check: Instant"
 echo ""
+
+# === claude-sandbox Integration (Optional) ===
+install_sandbox_support() {
+    echo ""
+    echo "Installing claude-sandbox notification support..."
+    echo ""
+
+    # Create directories
+    mkdir -p "$SANDBOX_CONFIG_DIR"
+    mkdir -p "$HOME/Library/LaunchAgents"
+
+    # Copy handler script to ~/.claude/
+    cp "$SCRIPT_DIR/notify-handler.sh" "$SANDBOX_HANDLER"
+    chmod +x "$SANDBOX_HANDLER"
+    echo "Installed $SANDBOX_HANDLER"
+
+    # Copy sandbox notify script to ~/.claude-sandbox/claude-config/
+    cp "$SCRIPT_DIR/notify-sandbox.sh" "$SANDBOX_NOTIFY_SCRIPT"
+    chmod +x "$SANDBOX_NOTIFY_SCRIPT"
+    echo "Installed $SANDBOX_NOTIFY_SCRIPT"
+
+    # Generate plist with expanded $HOME paths
+    sed "s|__HOME__|$HOME|g" "$SANDBOX_PLIST_TEMPLATE" > "$SANDBOX_PLIST"
+    echo "Installed $SANDBOX_PLIST"
+
+    # Unload existing service if running (ignore errors)
+    launchctl unload "$SANDBOX_PLIST" 2>/dev/null || true
+
+    # Load the launchd service (starts TCP listener on port 19223)
+    launchctl load "$SANDBOX_PLIST"
+    echo "Started launchd service (TCP listener on localhost:19223)"
+
+    # Configure hooks in sandbox settings.json
+    echo "Configuring sandbox hooks..."
+
+    # Note: Use container path, not host path
+    # ~/.claude-sandbox/claude-config on host is mounted to /home/claude/.claude in container
+    SANDBOX_STOP_HOOK_CONFIG='{
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "/home/claude/.claude/notify.sh '\''Ready for input'\''"
+        }
+      ]
+    }'
+
+    SANDBOX_PERMISSION_HOOK_CONFIG='{
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "/home/claude/.claude/notify.sh '\''Permission required'\''"
+        }
+      ]
+    }'
+
+    if [ -f "$SANDBOX_SETTINGS_FILE" ]; then
+        # Backup existing settings
+        cp "$SANDBOX_SETTINGS_FILE" "$SANDBOX_SETTINGS_FILE.backup"
+
+        # Add/update hooks
+        jq --argjson stop "[$SANDBOX_STOP_HOOK_CONFIG]" --argjson perm "[$SANDBOX_PERMISSION_HOOK_CONFIG]" \
+            '.hooks.Stop = $stop | .hooks.PermissionRequest = $perm' \
+            "$SANDBOX_SETTINGS_FILE" > "$SANDBOX_SETTINGS_FILE.tmp"
+        mv "$SANDBOX_SETTINGS_FILE.tmp" "$SANDBOX_SETTINGS_FILE"
+    else
+        # Create new settings.json
+        echo "{\"hooks\":{\"Stop\":[$SANDBOX_STOP_HOOK_CONFIG],\"PermissionRequest\":[$SANDBOX_PERMISSION_HOOK_CONFIG]}}" | jq '.' > "$SANDBOX_SETTINGS_FILE"
+    fi
+    echo "Configured hooks in $SANDBOX_SETTINGS_FILE"
+
+    echo ""
+    echo "Sandbox support installed!"
+    echo ""
+    echo "Note: If you haven't already, rebuild claude-sandbox to include netcat:"
+    echo "  cd <path-to-claude-sandbox> && ./docker/build.sh && ./docker/install.sh"
+    echo ""
+}
+
+echo ""
+echo "Do you use claude-sandbox (containerized Claude Code)?"
+read -p "Enable sandbox notification support? (y/n) " -n 1 -r
+echo ""
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    install_sandbox_support
+fi

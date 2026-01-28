@@ -115,13 +115,39 @@ macOS Sequoia 15.x broke traditional window management APIs:
 
 AeroSpace uses its own virtual workspace abstraction that works reliably without disabling SIP.
 
+## claude-sandbox Integration
+
+If you run Claude Code inside [claude-sandbox](https://github.com/tsilva/claude-sandbox), notifications can still reach your macOS desktop via TCP.
+
+During installation, select "yes" when asked about sandbox support. This installs:
+- A launchd service that listens on `localhost:19223`
+- A container-compatible notify script that connects via `host.docker.internal`
+- Hooks configured in `~/.claude-sandbox/claude-config/settings.json`
+
+**Requirements:**
+- claude-sandbox must have `netcat-openbsd` in its Dockerfile (included in recent versions)
+
+**How it works:**
+```
+Container                              Host (macOS)
+────────────────────────────────────────────────────────────
+Claude Code hook fires
+       │
+       ▼
+notify.sh connects via ─────────────►  launchd TCP listener
+host.docker.internal:19223                    │
+                                              ▼
+                                       terminal-notifier
+                                       + focus-window.sh
+```
+
 ## Uninstallation
 
 ```bash
 ./uninstall.sh
 ```
 
-This removes the notification scripts and hooks. AeroSpace and terminal-notifier are kept (you may have other uses for them).
+This removes the notification scripts, hooks, and sandbox support (if installed). AeroSpace and terminal-notifier are kept (you may have other uses for them).
 
 To fully remove dependencies:
 ```bash

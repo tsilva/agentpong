@@ -13,6 +13,14 @@ HAMMERSPOON_DIR="$HOME/.hammerspoon"
 HAMMERSPOON_INIT="$HAMMERSPOON_DIR/init.lua"
 HAMMERSPOON_MODULE="$HAMMERSPOON_DIR/claude-notify.lua"
 
+# Sandbox support paths
+SANDBOX_DIR="$HOME/.claude-sandbox"
+SANDBOX_CONFIG_DIR="$SANDBOX_DIR/claude-config"
+SANDBOX_NOTIFY_SCRIPT="$SANDBOX_CONFIG_DIR/notify.sh"
+SANDBOX_SETTINGS_FILE="$SANDBOX_CONFIG_DIR/settings.json"
+SANDBOX_HANDLER="$CLAUDE_DIR/notify-handler.sh"
+SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.claude-code-notify.sandbox.plist"
+
 echo "Claude Code Notify - Uninstaller"
 echo "================================="
 echo ""
@@ -52,6 +60,22 @@ if [ -f "$HAMMERSPOON_MODULE" ]; then
 fi
 if [ -f "$HAMMERSPOON_INIT" ] && grep -q 'require("claude-notify")' "$HAMMERSPOON_INIT" 2>/dev/null; then
     echo "  - Remove claude-notify from Hammerspoon config"
+fi
+
+# Check sandbox support
+if [ -f "$SANDBOX_PLIST" ]; then
+    echo "  - Unload and remove launchd service"
+fi
+if [ -f "$SANDBOX_HANDLER" ]; then
+    echo "  - Remove $SANDBOX_HANDLER"
+fi
+if [ -f "$SANDBOX_NOTIFY_SCRIPT" ]; then
+    echo "  - Remove $SANDBOX_NOTIFY_SCRIPT"
+fi
+if [ -f "$SANDBOX_SETTINGS_FILE" ] && command -v jq &> /dev/null; then
+    if jq -e '.hooks.Stop' "$SANDBOX_SETTINGS_FILE" > /dev/null 2>&1; then
+        echo "  - Remove hooks from sandbox settings.json"
+    fi
 fi
 
 echo ""
@@ -157,6 +181,57 @@ if [ -f "$HAMMERSPOON_INIT" ]; then
             echo "Reloading Hammerspoon config..."
             osascript -e 'tell application "Hammerspoon" to execute lua code "hs.reload()"' 2>/dev/null || true
         fi
+    fi
+fi
+
+# === Remove Sandbox Support (if installed) ===
+echo ""
+echo "Cleaning up sandbox support (if any)..."
+
+# Unload and remove launchd service
+if [ -f "$SANDBOX_PLIST" ]; then
+    launchctl unload "$SANDBOX_PLIST" 2>/dev/null || true
+    rm "$SANDBOX_PLIST"
+    echo "Removed launchd service"
+fi
+
+# Remove handler script
+if [ -f "$SANDBOX_HANDLER" ]; then
+    rm "$SANDBOX_HANDLER"
+    echo "Removed $SANDBOX_HANDLER"
+fi
+
+# Remove sandbox notify script
+if [ -f "$SANDBOX_NOTIFY_SCRIPT" ]; then
+    rm "$SANDBOX_NOTIFY_SCRIPT"
+    echo "Removed $SANDBOX_NOTIFY_SCRIPT"
+fi
+
+# Remove hooks from sandbox settings.json
+if [ -f "$SANDBOX_SETTINGS_FILE" ] && command -v jq &> /dev/null; then
+    if jq -e '.hooks.Stop' "$SANDBOX_SETTINGS_FILE" > /dev/null 2>&1 || \
+       jq -e '.hooks.PermissionRequest' "$SANDBOX_SETTINGS_FILE" > /dev/null 2>&1; then
+        cp "$SANDBOX_SETTINGS_FILE" "$SANDBOX_SETTINGS_FILE.backup"
+
+        # Remove Stop hook
+        if jq -e '.hooks.Stop' "$SANDBOX_SETTINGS_FILE" > /dev/null 2>&1; then
+            jq 'del(.hooks.Stop)' "$SANDBOX_SETTINGS_FILE" > "$SANDBOX_SETTINGS_FILE.tmp"
+            mv "$SANDBOX_SETTINGS_FILE.tmp" "$SANDBOX_SETTINGS_FILE"
+        fi
+
+        # Remove PermissionRequest hook
+        if jq -e '.hooks.PermissionRequest' "$SANDBOX_SETTINGS_FILE" > /dev/null 2>&1; then
+            jq 'del(.hooks.PermissionRequest)' "$SANDBOX_SETTINGS_FILE" > "$SANDBOX_SETTINGS_FILE.tmp"
+            mv "$SANDBOX_SETTINGS_FILE.tmp" "$SANDBOX_SETTINGS_FILE"
+        fi
+
+        # Clean up empty hooks object
+        if jq -e '.hooks == {}' "$SANDBOX_SETTINGS_FILE" > /dev/null 2>&1; then
+            jq 'del(.hooks)' "$SANDBOX_SETTINGS_FILE" > "$SANDBOX_SETTINGS_FILE.tmp"
+            mv "$SANDBOX_SETTINGS_FILE.tmp" "$SANDBOX_SETTINGS_FILE"
+        fi
+
+        echo "Removed hooks from sandbox settings.json"
     fi
 fi
 
