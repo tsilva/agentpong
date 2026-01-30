@@ -17,7 +17,7 @@ PORT=19223
 # Listen for connections and process each one
 while true; do
     # nc -l listens for one connection, outputs received data
-    line=$(nc -l localhost $PORT 2>/dev/null)
+    line=$(nc -l 0.0.0.0 $PORT 2>/dev/null)
 
     # Parse workspace and message
     workspace="${line%%|*}"
@@ -30,5 +30,5 @@ while true; do
     [ -z "$message" ] && message="Ready for input"
 
     # Delegate to notify.sh (single terminal-notifier codepath)
-    CLAUDE_PROJECT_DIR="/fake/$workspace" "$HOME/.claude/notify.sh" "$message"
+    CLAUDE_PROJECT_DIR="/fake/$workspace" "$HOME/.claude/notify.sh" "$message" &
 done
