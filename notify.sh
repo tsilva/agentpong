@@ -37,4 +37,5 @@ terminal-notifier \
     -title "Claude Code [$WORKSPACE]" \
     -message "$MESSAGE" \
     -sound default \
-    -execute "$HOME/.claude/focus-window.sh '$WORKSPACE'"
+    -group "$WORKSPACE" \
+    -execute "$HOME/.claude/focus-window.sh '$WORKSPACE' && terminal-notifier -remove '$WORKSPACE'"
