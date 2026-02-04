@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Claude Code Notify - Uninstallation Script
+# claudepong - Uninstallation Script
 #
 
 set -e
@@ -19,10 +19,10 @@ SANDBOX_CONFIG_DIR="$SANDBOX_DIR/claude-config"
 SANDBOX_NOTIFY_SCRIPT="$SANDBOX_CONFIG_DIR/notify.sh"
 SANDBOX_SETTINGS_FILE="$SANDBOX_CONFIG_DIR/settings.json"
 SANDBOX_HANDLER="$CLAUDE_DIR/notify-handler.sh"
-SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.claude-code-notify.sandbox.plist"
+SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.claudepong.sandbox.plist"
 
-echo "Claude Code Notify - Uninstaller"
-echo "================================="
+echo "claudepong - Uninstaller"
+echo "========================"
 echo ""
 
 # === Preview what will be done ===

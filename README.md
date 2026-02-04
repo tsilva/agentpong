@@ -1,21 +1,21 @@
 <div align="center">
-  <img src="logo.png" alt="claude-code-notify" width="512"/>
+  <img src="logo.png" alt="claudepong" width="512"/>
 
-  # claude-code-notify
+  # claudepong
 
-  [![GitHub stars](https://img.shields.io/github/stars/tsilva/claude-code-notify?style=flat&logo=github)](https://github.com/tsilva/claude-code-notify)
+  [![GitHub stars](https://img.shields.io/github/stars/tsilva/claudepong?style=flat&logo=github)](https://github.com/tsilva/claudepong)
   [![macOS](https://img.shields.io/badge/macOS-Sequoia%2015.x-blue?logo=apple)](https://www.apple.com/macos/sequoia/)
-  [![License](https://img.shields.io/github/license/tsilva/claude-code-notify)](LICENSE)
+  [![License](https://img.shields.io/github/license/tsilva/claudepong)](LICENSE)
   [![AeroSpace](https://img.shields.io/badge/AeroSpace-Tiling%20WM-8B5CF6?logo=apple)](https://github.com/nikitabobko/AeroSpace)
 
-  **🔔 Never miss when Claude Code needs your attention — get desktop notifications that focus the right window, even across workspaces**
+  **🏓 Claude pings, you pong back — desktop notifications that focus the right window, even across workspaces**
 
   [Installation](#installation) · [Usage](#usage) · [How It Works](#how-it-works) · [Troubleshooting](#troubleshooting)
 </div>
 
 ## Overview
 
-claude-code-notify sends macOS desktop notifications when Claude Code finishes a task or requests permission. Click the notification to instantly switch to the correct IDE window — even if it's on a different workspace.
+claudepong sends macOS desktop notifications when Claude Code finishes a task or requests permission. Click the notification to instantly switch to the correct IDE window — even if it's on a different workspace.
 
 Built for developers who run Claude Code in the background while multitasking. Stop constantly checking if Claude is done.
 
@@ -45,11 +45,11 @@ cd aerospace-setup
 
 This installs AeroSpace configuration and creates the `~/.claude/focus-window.sh` symlink needed for click-to-focus.
 
-### Step 2: Install claude-code-notify
+### Step 2: Install claudepong
 
 ```bash
-git clone https://github.com/tsilva/claude-code-notify.git
-cd claude-code-notify
+git clone https://github.com/tsilva/claudepong.git
+cd claudepong
 ./install.sh
 ```
 

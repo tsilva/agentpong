@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Claude Code Notify - Installation Script
+# claudepong - Installation Script
 #
 
 set -e
@@ -17,11 +17,11 @@ SANDBOX_CONFIG_DIR="$SANDBOX_DIR/claude-config"
 SANDBOX_NOTIFY_SCRIPT="$SANDBOX_CONFIG_DIR/notify.sh"
 SANDBOX_SETTINGS_FILE="$SANDBOX_CONFIG_DIR/settings.json"
 SANDBOX_HANDLER="$CLAUDE_DIR/notify-handler.sh"
-SANDBOX_PLIST_TEMPLATE="$SCRIPT_DIR/com.claude-code-notify.sandbox.plist.template"
-SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.claude-code-notify.sandbox.plist"
+SANDBOX_PLIST_TEMPLATE="$SCRIPT_DIR/com.claudepong.sandbox.plist.template"
+SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.claudepong.sandbox.plist"
 
-echo "Claude Code Notify - Installer"
-echo "==============================="
+echo "claudepong - Installer"
+echo "======================"
 echo ""
 
 # Check for macOS

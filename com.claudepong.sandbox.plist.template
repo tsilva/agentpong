@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.claude-code-notify.sandbox</string>
+    <string>com.claudepong.sandbox</string>
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
