@@ -8,32 +8,46 @@
   [![License](https://img.shields.io/github/license/tsilva/claudepong)](LICENSE)
   [![AeroSpace](https://img.shields.io/badge/AeroSpace-Tiling%20WM-8B5CF6?logo=apple)](https://github.com/nikitabobko/AeroSpace)
 
+  *Tired of tab-switching to check if Claude is done?*
+
   **🏓 Claude pings, you pong back — desktop notifications that focus the right window, even across workspaces**
 
-  [Installation](#installation) · [Usage](#usage) · [How It Works](#how-it-works) · [Troubleshooting](#troubleshooting)
+  [Installation](#-installation) · [Usage](#-usage) · [How It Works](#-how-it-works) · [Troubleshooting](#-troubleshooting)
 </div>
+
+---
 
 ## Overview
 
-claudepong sends macOS desktop notifications when Claude Code finishes a task or requests permission. Click the notification to instantly switch to the correct IDE window — even if it's on a different workspace.
+**The Pain:** You're running Claude Code in the background while working on something else. You keep switching tabs to check if it's done. Or worse — you miss when it needs permission and it sits idle for minutes.
 
-Built for developers who run Claude Code in the background while multitasking. Stop constantly checking if Claude is done.
+**The Solution:** claudepong sends macOS desktop notifications the instant Claude finishes a task or needs permission. One click jumps you directly to the right IDE window — even if it's buried in another workspace.
 
-## Features
+**The Result:** Zero tab-switching. Zero missed prompts. Stay in flow while Claude works.
 
-- **Smart notifications** — Alerts when Claude finishes tasks ("Ready for input") or needs permission ("Permission required")
-- **Cross-workspace window focus** — Click notification to jump directly to the right Cursor/VS Code window via AeroSpace
-- **Works on Sequoia** — Uses AeroSpace instead of broken AppleScript/Hammerspoon APIs
-- **Zero config** — Install script handles everything automatically
+<div align="center">
 
-## Requirements
+| ⚡ Setup | 🎯 Focus | 🖥️ Workspaces |
+|---------|----------|---------------|
+| 30 seconds | 1-click | Cross-workspace |
+
+</div>
+
+## ✨ Features
+
+- **🔔 Smart notifications** — Alerts when Claude finishes tasks ("Ready for input") or needs permission ("Permission required")
+- **🎯 Cross-workspace window focus** — Click notification to jump directly to the right Cursor/VS Code window via AeroSpace
+- **🍎 Works on Sequoia** — Uses AeroSpace instead of broken AppleScript/Hammerspoon APIs
+- **⚙️ Zero config** — Install script handles everything automatically
+
+## 📋 Requirements
 
 - **macOS** (Sequoia 15.x supported)
 - **Homebrew** for installing dependencies
 - **Cursor** or **VS Code** with Claude Code extension
 - **[aerospace-setup](https://github.com/tsilva/aerospace-setup)** — Required for window focusing
 
-## Installation
+## 🚀 Installation
 
 ### Step 1: Install aerospace-setup (required)
 
@@ -65,7 +79,7 @@ The installer will:
 2. Grant Accessibility permissions when prompted
 3. Restart your terminal/IDE
 
-## Usage
+## 💡 Usage
 
 ### Cursor / VS Code
 
@@ -86,7 +100,7 @@ Claude Code hooks don't fire in standalone terminals. Set up iTerm Triggers inst
    - **Parameters:** `~/.claude/notify.sh "Ready for input"`
    - **Instant:** ✓ (checked)
 
-## How It Works
+## 🔧 How It Works
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
@@ -109,13 +123,17 @@ Claude Code hooks don't fire in standalone terminals. Set up iTerm Triggers inst
 ### Why AeroSpace?
 
 macOS Sequoia 15.x broke traditional window management APIs:
-- Hammerspoon's `hs.spaces.gotoSpace()` no longer works
-- AppleScript's `AXRaise` can't switch between Spaces
-- URL schemes (`cursor://`, `vscode://`) don't switch workspaces
 
-AeroSpace uses its own virtual workspace abstraction that works reliably without disabling SIP.
+| Approach | Problem |
+|----------|---------|
+| Hammerspoon `hs.spaces.gotoSpace()` | No longer works on Sequoia |
+| AppleScript `AXRaise` | Can't switch between Spaces |
+| URL schemes (`cursor://`, `vscode://`) | Don't switch workspaces |
+| **AeroSpace** | ✅ Works reliably without disabling SIP |
 
-## claude-sandbox Integration
+AeroSpace uses its own virtual workspace abstraction that bypasses these limitations.
+
+## 🐳 claude-sandbox Integration
 
 If you run Claude Code inside [claude-sandbox](https://github.com/tsilva/claude-sandbox), notifications can still reach your macOS desktop via TCP.
 
@@ -141,7 +159,7 @@ host.docker.internal:19223                    │
                                        + focus-window.sh
 ```
 
-## Uninstallation
+## 🗑️ Uninstallation
 
 ```bash
 ./uninstall.sh
@@ -159,7 +177,7 @@ cd ../aerospace-setup
 ./uninstall.sh
 ```
 
-## Troubleshooting
+## 🔍 Troubleshooting
 
 ### Notifications don't appear
 
@@ -187,10 +205,18 @@ cd aerospace-setup
 
 Claude Code hooks only work in IDE-integrated terminals (Cursor/VS Code). For standalone terminals like iTerm2, use the Triggers workaround described above.
 
-## Contributing
+## 🤝 Contributing
 
-Contributions welcome! Feel free to open issues or submit pull requests.
+Contributions welcome! Feel free to [open an issue](https://github.com/tsilva/claudepong/issues) or submit a pull request.
 
-## License
+## 📄 License
 
 [MIT](LICENSE)
+
+---
+
+<div align="center">
+
+Found this useful? [⭐ Star the repo](https://github.com/tsilva/claudepong) to help others discover it!
+
+</div>
