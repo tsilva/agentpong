@@ -57,7 +57,7 @@ if ! command -v jq &> /dev/null; then
     warn "jq is required but not installed."
     confirm "Install jq via Homebrew?"
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        brew install jq
+        spin "Installing jq..." brew install jq
     else
         error "Please install jq manually: brew install jq"
         exit 1
@@ -70,7 +70,7 @@ if ! command -v terminal-notifier &> /dev/null; then
     warn "terminal-notifier is required for notifications."
     confirm "Install terminal-notifier via Homebrew?"
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        brew install terminal-notifier
+        spin "Installing terminal-notifier..." brew install terminal-notifier
     else
         error "Please install terminal-notifier manually: brew install terminal-notifier"
         exit 1
