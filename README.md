@@ -43,21 +43,12 @@
 - **macOS** (Sequoia 15.x supported)
 - **Homebrew** for installing dependencies
 - **Cursor** or **VS Code** with Claude Code extension
-- **[aerospace-setup](https://github.com/tsilva/aerospace-setup)** — Required for window focusing
+
+### Optional
+
+- **[AeroSpace](https://github.com/nikitabobko/AeroSpace)** — Enables cross-workspace window focus when clicking notifications
 
 ## 🚀 Installation
-
-### Step 1: Install aerospace-setup (required)
-
-```bash
-git clone https://github.com/tsilva/aerospace-setup.git
-cd aerospace-setup
-./install.sh
-```
-
-This installs AeroSpace configuration and creates the `~/.claude/focus-window.sh` symlink needed for click-to-focus.
-
-### Step 2: Install claudepong
 
 ```bash
 git clone https://github.com/tsilva/claudepong.git
@@ -66,16 +57,18 @@ cd claudepong
 ```
 
 The installer will:
-1. Verify aerospace-setup is installed
-2. Install `terminal-notifier` via Homebrew
-3. Copy notification script to `~/.claude/`
-4. Configure Claude Code hooks in `~/.claude/settings.json`
+1. Install `terminal-notifier` via Homebrew (if needed)
+2. Copy notification and focus scripts to `~/.claude/`
+3. Configure Claude Code hooks in `~/.claude/settings.json`
+4. Detect AeroSpace and enable window focus if available
 
-### Post-install
+### Post-install (with AeroSpace)
 
 1. Ensure AeroSpace is running (should start automatically)
 2. Grant Accessibility permissions when prompted
 3. Restart your terminal/IDE
+
+Without AeroSpace, notifications still work — clicking them will dismiss the notification but won't switch to the IDE window.
 
 ## 💡 Usage
 
@@ -109,14 +102,14 @@ Claude Code hooks don't fire in standalone terminals. Set up iTerm Triggers inst
                                                           ▼ click
                         ┌──────────────────┐     ┌─────────────────┐
                         │   AeroSpace      │◀────│ focus-window.sh │
-                        │  (focus window)  │     │    (symlink)    │
+                        │  (focus window)  │     │    (bundled)    │
                         └──────────────────┘     └─────────────────┘
 ```
 
 1. Claude Code's `Stop` or `PermissionRequest` hook triggers `notify.sh`
 2. `notify.sh` sends a notification via `terminal-notifier`
-3. Clicking the notification executes `~/.claude/focus-window.sh` (symlink to aerospace-setup)
-4. The aerospace script finds and focuses the correct IDE window
+3. Clicking the notification executes `~/.claude/focus-window.sh` (if installed)
+4. The focus script finds and focuses the correct IDE window via AeroSpace
 
 ### Why AeroSpace?
 
@@ -163,16 +156,11 @@ host.docker.internal:19223                    │
 ./uninstall.sh
 ```
 
-This removes the notification scripts, hooks, and sandbox support (if installed). AeroSpace and terminal-notifier are kept (you may have other uses for them).
+This removes the notification scripts, hooks, and sandbox support (if installed). terminal-notifier is kept (you may have other uses for it).
 
 To fully remove dependencies:
 ```bash
-# Remove terminal-notifier
 brew uninstall terminal-notifier
-
-# Remove aerospace-setup (if desired)
-cd ../aerospace-setup
-./uninstall.sh
 ```
 
 ## 🔍 Troubleshooting
@@ -183,21 +171,14 @@ cd ../aerospace-setup
 2. Verify the hook is configured: `cat ~/.claude/settings.json | grep Stop`
 3. Test manually: `~/.claude/notify.sh "Test"`
 
-### Window doesn't focus on click
+### Clicking notification doesn't focus the window
 
-1. Verify aerospace-setup is installed: `ls -la ~/.claude/focus-window.sh`
-2. Check AeroSpace is running: `pgrep -x AeroSpace`
-3. Check Accessibility permissions: **System Settings → Privacy & Security → Accessibility**
-4. Test window listing: `aerospace list-windows --all | grep Cursor`
-
-### Installer fails with "aerospace-setup is required"
-
-Install aerospace-setup first:
-```bash
-git clone https://github.com/tsilva/aerospace-setup.git
-cd aerospace-setup
-./install.sh
-```
+1. Check focus-window.sh is installed: `ls -la ~/.claude/focus-window.sh`
+2. Check AeroSpace is installed: `which aerospace` or `ls /opt/homebrew/bin/aerospace`
+3. Check AeroSpace is running: `pgrep -x AeroSpace`
+4. Check Accessibility permissions: **System Settings → Privacy & Security → Accessibility**
+5. Test window listing: `aerospace list-windows --all | grep Cursor`
+6. Test focus script directly: `~/.claude/focus-window.sh "your-project-name"`
 
 ### Notifications work but hooks don't fire
 

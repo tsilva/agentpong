@@ -2,15 +2,18 @@
 #
 # Claude Code Notification Script
 # Sends a macOS notification when Claude Code is ready for input.
-# Clicking the notification focuses the correct IDE window via aerospace-setup.
+# If focus-window.sh is installed, clicking the notification focuses the
+# correct IDE window (requires AeroSpace for cross-workspace support).
 #
 # Prerequisites:
-#   - aerospace-setup (provides ~/.claude/focus-window.sh symlink)
 #   - terminal-notifier (brew install terminal-notifier)
 #
+# Optional:
+#   - AeroSpace (for cross-workspace window focus on click)
+#
 # Supported terminals:
-#   - Cursor: Full support (notification + window focus across workspaces)
-#   - VS Code: Full support (notification + window focus across workspaces)
+#   - Cursor: Full support (notification + optional window focus)
+#   - VS Code: Full support (notification + optional window focus)
 #
 # Usage: notify.sh [message]
 #
@@ -43,11 +46,22 @@ if [ -f "$LAUNCH_DIR/logo.png" ]; then
     ICON_ARGS=(-contentImage "$LAUNCH_DIR/logo.png")
 fi
 
-# Send notification with click-to-focus via aerospace-setup symlink
-terminal-notifier \
-    "${ICON_ARGS[@]}" \
-    -title "Claude Code [$WORKSPACE]" \
-    -message "$MESSAGE" \
-    -sound default \
-    -group "$WORKSPACE" \
-    -execute "$HOME/.claude/focus-window.sh '$WORKSPACE' && terminal-notifier -remove '$WORKSPACE'"
+# Build notification arguments
+NOTIFY_ARGS=(
+    "${ICON_ARGS[@]}"
+    -title "Claude Code [$WORKSPACE]"
+    -message "$MESSAGE"
+    -sound default
+    -group "$WORKSPACE"
+)
+
+# Add click-to-focus if focus-window.sh is available
+FOCUS_SCRIPT="$HOME/.claude/focus-window.sh"
+if [ -x "$FOCUS_SCRIPT" ]; then
+    NOTIFY_ARGS+=(-execute "$FOCUS_SCRIPT '$WORKSPACE' && terminal-notifier -remove '$WORKSPACE'")
+else
+    NOTIFY_ARGS+=(-execute "terminal-notifier -remove '$WORKSPACE'")
+fi
+
+# Send notification
+terminal-notifier "${NOTIFY_ARGS[@]}"

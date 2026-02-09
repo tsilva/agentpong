@@ -10,7 +10,8 @@ CLAUDE_DIR="$HOME/.claude"
 NOTIFY_SCRIPT="$CLAUDE_DIR/notify.sh"
 STYLE_SCRIPT="$CLAUDE_DIR/style.sh"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
-FOCUS_SYMLINK="$CLAUDE_DIR/focus-window.sh"
+FOCUS_SCRIPT_SRC="$SCRIPT_DIR/focus-window.sh"
+FOCUS_SCRIPT_DST="$CLAUDE_DIR/focus-window.sh"
 
 # Sandbox support paths
 SANDBOX_DIR="$HOME/.claude-sandbox"
@@ -34,23 +35,17 @@ fi
 
 section "Checking dependencies"
 
-# Check for aerospace-setup dependency (provides focus-window.sh symlink)
-step "Checking for aerospace-setup..."
-if [ ! -L "$FOCUS_SYMLINK" ]; then
-    error_block \
-        "aerospace-setup is required for click-to-focus functionality." \
-        "" \
-        "The symlink ~/.claude/focus-window.sh was not found." \
-        "" \
-        "Please install aerospace-setup first:" \
-        "  git clone https://github.com/tsilva/aerospace-setup.git" \
-        "  cd aerospace-setup" \
-        "  ./install.sh" \
-        "" \
-        "Then run this installer again."
-    exit 1
+# Check for AeroSpace (optional — enables cross-workspace window focus)
+HAS_AEROSPACE=false
+step "Checking for AeroSpace..."
+if command -v aerospace &> /dev/null || [ -x "/opt/homebrew/bin/aerospace" ] || [ -x "/usr/local/bin/aerospace" ]; then
+    HAS_AEROSPACE=true
+    success "AeroSpace is installed (cross-workspace window focus enabled)"
+else
+    warn "AeroSpace not found (optional — notifications will still work)"
+    dim "Install AeroSpace for cross-workspace window focus:"
+    dim "  brew install --cask nikitabobko/tap/aerospace"
 fi
-success "aerospace-setup is installed (focus-window.sh symlink found)"
 
 # Check for jq (needed for JSON manipulation)
 if ! command -v jq &> /dev/null; then
@@ -93,6 +88,32 @@ chmod +x "$NOTIFY_SCRIPT"
 step "Installing style.sh..."
 cp "$SCRIPT_DIR/style.sh" "$STYLE_SCRIPT"
 chmod +x "$STYLE_SCRIPT"
+
+# Install focus-window.sh (with conflict handling for aerospace-setup symlink)
+step "Installing focus-window.sh..."
+if [ -L "$FOCUS_SCRIPT_DST" ]; then
+    # Existing symlink from aerospace-setup
+    warn "~/.claude/focus-window.sh is a symlink (likely from aerospace-setup)"
+    confirm "Replace symlink with bundled copy?"
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        rm "$FOCUS_SCRIPT_DST"
+        cp "$FOCUS_SCRIPT_SRC" "$FOCUS_SCRIPT_DST"
+        chmod +x "$FOCUS_SCRIPT_DST"
+        success "Replaced symlink with bundled focus-window.sh"
+    else
+        info "Keeping existing symlink"
+    fi
+elif [ -f "$FOCUS_SCRIPT_DST" ]; then
+    # Regular file from previous claudepong install
+    cp "$FOCUS_SCRIPT_SRC" "$FOCUS_SCRIPT_DST"
+    chmod +x "$FOCUS_SCRIPT_DST"
+    success "Updated focus-window.sh"
+else
+    # Fresh install
+    cp "$FOCUS_SCRIPT_SRC" "$FOCUS_SCRIPT_DST"
+    chmod +x "$FOCUS_SCRIPT_DST"
+    success "Installed focus-window.sh"
+fi
 
 # Configure settings.json
 step "Configuring Claude Code hooks..."
@@ -162,7 +183,11 @@ banner "Installation complete!"
 
 info "Features enabled:"
 list_item "Notifications" "Yes"
-list_item "Window focus" "Yes (via aerospace-setup)"
+if [ "$HAS_AEROSPACE" = true ]; then
+    list_item "Window focus" "Yes (AeroSpace detected)"
+else
+    list_item "Window focus" "No (install AeroSpace for cross-workspace focus)"
+fi
 echo ""
 
 section "Usage"
