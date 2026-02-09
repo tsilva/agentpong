@@ -32,8 +32,15 @@ if ! command -v terminal-notifier &> /dev/null; then
     exit 1
 fi
 
+# Use project logo as notification icon if available
+ICON_ARGS=()
+if [ -f "$LAUNCH_DIR/logo.png" ]; then
+    ICON_ARGS=(-contentImage "$LAUNCH_DIR/logo.png")
+fi
+
 # Send notification with click-to-focus via aerospace-setup symlink
 terminal-notifier \
+    "${ICON_ARGS[@]}" \
     -title "Claude Code [$WORKSPACE]" \
     -message "$MESSAGE" \
     -sound default \

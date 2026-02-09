@@ -8,9 +8,7 @@
   [![License](https://img.shields.io/github/license/tsilva/claudepong)](LICENSE)
   [![AeroSpace](https://img.shields.io/badge/AeroSpace-Tiling%20WM-8B5CF6?logo=apple)](https://github.com/nikitabobko/AeroSpace)
 
-  *Tired of tab-switching to check if Claude is done?*
-
-  **🏓 Claude pings, you pong back — desktop notifications that focus the right window, even across workspaces**
+  **🏓 Claude pings, you pong back — desktop notifications that focus the right window, even across workspaces 🔔**
 
   [Installation](#-installation) · [Usage](#-usage) · [How It Works](#-how-it-works) · [Troubleshooting](#-troubleshooting)
 </div>
