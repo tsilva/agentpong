@@ -20,15 +20,20 @@ if [ -n "$CLAUDE_CODE_BRIDGE" ]; then
     exit 0
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Use Claude's project directory (launch path), fall back to PWD for manual testing
 LAUNCH_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 WORKSPACE="${LAUNCH_DIR##*/}"
 MESSAGE="${1:-Ready for input}"
 
+# Source styling library (graceful fallback to plain echo)
+source "$SCRIPT_DIR/style.sh" 2>/dev/null || true
+
 # Check for required dependencies
 if ! command -v terminal-notifier &> /dev/null; then
-    echo "Error: terminal-notifier is not installed."
-    echo "Run install.sh or install manually: brew install terminal-notifier"
+    error "terminal-notifier is not installed."
+    dim "Run install.sh or install manually: brew install terminal-notifier"
     exit 1
 fi
 
