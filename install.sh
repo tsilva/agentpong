@@ -8,6 +8,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
 NOTIFY_SCRIPT="$CLAUDE_DIR/notify.sh"
+STYLE_SCRIPT="$CLAUDE_DIR/style.sh"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 FOCUS_SYMLINK="$CLAUDE_DIR/focus-window.sh"
 
@@ -20,79 +21,81 @@ SANDBOX_HANDLER="$CLAUDE_DIR/notify-handler.sh"
 SANDBOX_PLIST_TEMPLATE="$SCRIPT_DIR/com.claudepong.sandbox.plist.template"
 SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.claudepong.sandbox.plist"
 
-echo "claudepong - Installer"
-echo "======================"
-echo ""
+# Source styling library (graceful fallback to plain echo)
+source "$SCRIPT_DIR/style.sh" 2>/dev/null || true
+
+header "claudepong" "Installer"
 
 # Check for macOS
 if [[ "$OSTYPE" != "darwin"* ]]; then
-    echo "Error: This tool only works on macOS."
+    error "This tool only works on macOS."
     exit 1
 fi
 
+section "Checking dependencies"
+
 # Check for aerospace-setup dependency (provides focus-window.sh symlink)
-echo "Checking for aerospace-setup..."
+step "Checking for aerospace-setup..."
 if [ ! -L "$FOCUS_SYMLINK" ]; then
-    echo ""
-    echo "ERROR: aerospace-setup is required for click-to-focus functionality."
-    echo ""
-    echo "The symlink ~/.claude/focus-window.sh was not found."
-    echo ""
-    echo "Please install aerospace-setup first:"
-    echo "  git clone https://github.com/tsilva/aerospace-setup.git"
-    echo "  cd aerospace-setup"
-    echo "  ./install.sh"
-    echo ""
-    echo "Then run this installer again."
+    error_block \
+        "aerospace-setup is required for click-to-focus functionality." \
+        "" \
+        "The symlink ~/.claude/focus-window.sh was not found." \
+        "" \
+        "Please install aerospace-setup first:" \
+        "  git clone https://github.com/tsilva/aerospace-setup.git" \
+        "  cd aerospace-setup" \
+        "  ./install.sh" \
+        "" \
+        "Then run this installer again."
     exit 1
 fi
-echo "✓ aerospace-setup is installed (focus-window.sh symlink found)"
-echo ""
+success "aerospace-setup is installed (focus-window.sh symlink found)"
 
 # Check for jq (needed for JSON manipulation)
 if ! command -v jq &> /dev/null; then
-    echo "jq is required but not installed."
-    read -p "Install via Homebrew? (y/n) " -n 1 -r
-    echo ""
+    warn "jq is required but not installed."
+    confirm "Install jq via Homebrew?"
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         brew install jq
     else
-        echo "Please install jq manually: brew install jq"
+        error "Please install jq manually: brew install jq"
         exit 1
     fi
 fi
 
-# === terminal-notifier Setup ===
-echo "Checking for terminal-notifier..."
-
+# Check for terminal-notifier
+step "Checking for terminal-notifier..."
 if ! command -v terminal-notifier &> /dev/null; then
-    echo "terminal-notifier is required for notifications."
-    read -p "Install terminal-notifier via Homebrew? (y/n) " -n 1 -r
-    echo ""
+    warn "terminal-notifier is required for notifications."
+    confirm "Install terminal-notifier via Homebrew?"
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         brew install terminal-notifier
     else
-        echo "Please install terminal-notifier manually: brew install terminal-notifier"
+        error "Please install terminal-notifier manually: brew install terminal-notifier"
         exit 1
     fi
 else
-    echo "✓ terminal-notifier is already installed"
+    success "terminal-notifier is already installed"
 fi
 
-# === Claude Code Setup ===
-echo ""
-echo "Setting up Claude Code integration..."
+section "Setting up Claude Code integration"
 
 # Create .claude directory if needed
 mkdir -p "$CLAUDE_DIR"
 
 # Copy notify.sh
-echo "Installing notify.sh..."
+step "Installing notify.sh..."
 cp "$SCRIPT_DIR/notify.sh" "$NOTIFY_SCRIPT"
 chmod +x "$NOTIFY_SCRIPT"
 
+# Copy style.sh (used by notify.sh for styled errors)
+step "Installing style.sh..."
+cp "$SCRIPT_DIR/style.sh" "$STYLE_SCRIPT"
+chmod +x "$STYLE_SCRIPT"
+
 # Configure settings.json
-echo "Configuring Claude Code hooks..."
+step "Configuring Claude Code hooks..."
 
 # Stop hook - fires when Claude finishes a task
 STOP_HOOK_CONFIG='{
@@ -119,18 +122,17 @@ PERMISSION_HOOK_CONFIG='{
 if [ -f "$SETTINGS_FILE" ]; then
     # Backup existing settings
     cp "$SETTINGS_FILE" "$SETTINGS_FILE.backup"
-    echo "Backed up existing settings to $SETTINGS_FILE.backup"
+    dim "Backed up existing settings to $SETTINGS_FILE.backup"
 
     # Check if Stop hook already exists
     if jq -e '.hooks.Stop' "$SETTINGS_FILE" > /dev/null 2>&1; then
-        echo "Stop hook already exists in settings.json"
-        read -p "Replace existing Stop hook? (y/n) " -n 1 -r
-        echo ""
+        warn "Stop hook already exists in settings.json"
+        confirm "Replace existing Stop hook?"
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             jq --argjson hook "[$STOP_HOOK_CONFIG]" '.hooks.Stop = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
             mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
         else
-            echo "Keeping existing Stop hook."
+            info "Keeping existing Stop hook."
         fi
     else
         jq --argjson hook "[$STOP_HOOK_CONFIG]" '.hooks.Stop = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
@@ -139,14 +141,13 @@ if [ -f "$SETTINGS_FILE" ]; then
 
     # Check if PermissionRequest hook already exists
     if jq -e '.hooks.PermissionRequest' "$SETTINGS_FILE" > /dev/null 2>&1; then
-        echo "PermissionRequest hook already exists in settings.json"
-        read -p "Replace existing PermissionRequest hook? (y/n) " -n 1 -r
-        echo ""
+        warn "PermissionRequest hook already exists in settings.json"
+        confirm "Replace existing PermissionRequest hook?"
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             jq --argjson hook "[$PERMISSION_HOOK_CONFIG]" '.hooks.PermissionRequest = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
             mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
         else
-            echo "Keeping existing PermissionRequest hook."
+            info "Keeping existing PermissionRequest hook."
         fi
     else
         jq --argjson hook "[$PERMISSION_HOOK_CONFIG]" '.hooks.PermissionRequest = $hook' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
@@ -157,33 +158,31 @@ else
     echo "{\"hooks\":{\"Stop\":[$STOP_HOOK_CONFIG],\"PermissionRequest\":[$PERMISSION_HOOK_CONFIG]}}" | jq '.' > "$SETTINGS_FILE"
 fi
 
+banner "Installation complete!"
+
+info "Features enabled:"
+list_item "Notifications" "Yes"
+list_item "Window focus" "Yes (via aerospace-setup)"
 echo ""
-echo "Installation complete!"
+
+section "Usage"
+
+info "Cursor/VS Code: Notifications work automatically."
+dim "Start a new Claude session and you'll get notifications"
+dim "when Claude is ready for input."
 echo ""
-echo "Features enabled:"
-echo "  - Notifications: Yes"
-echo "  - Window focus across workspaces: Yes (via aerospace-setup)"
-echo ""
-echo "Usage:"
-echo "  - Cursor/VS Code: Notifications work automatically."
-echo "    Start a new Claude session and you'll get notifications"
-echo "    when Claude is ready for input."
-echo ""
-echo "  - iTerm2: Claude Code hooks don't work in standalone terminals."
-echo "    Set up iTerm Triggers instead:"
-echo "    1. iTerm > Settings > Profiles > Advanced > Triggers > Edit"
-echo "    2. Add a trigger:"
-echo "       Regex: ^[[:space:]]*>"
-echo "       Action: Run Command..."
-echo "       Parameters: $NOTIFY_SCRIPT \"Ready for input\""
-echo "       Check: Instant"
-echo ""
+info "iTerm2: Claude Code hooks don't work in standalone terminals."
+dim "Set up iTerm Triggers instead:"
+dim "  1. iTerm > Settings > Profiles > Advanced > Triggers > Edit"
+dim "  2. Add a trigger:"
+dim "       Regex: ^[[:space:]]*>"
+dim "       Action: Run Command..."
+dim "       Parameters: $NOTIFY_SCRIPT \"Ready for input\""
+dim "       Check: Instant"
 
 # === claude-sandbox Integration (Optional) ===
 install_sandbox_support() {
-    echo ""
-    echo "Installing claude-sandbox notification support..."
-    echo ""
+    section "Installing sandbox support"
 
     # Create directories
     mkdir -p "$SANDBOX_CONFIG_DIR"
@@ -192,26 +191,26 @@ install_sandbox_support() {
     # Copy handler script to ~/.claude/
     cp "$SCRIPT_DIR/notify-handler.sh" "$SANDBOX_HANDLER"
     chmod +x "$SANDBOX_HANDLER"
-    echo "Installed $SANDBOX_HANDLER"
+    step "Installed $SANDBOX_HANDLER"
 
     # Copy sandbox notify script to ~/.claude-sandbox/claude-config/
     cp "$SCRIPT_DIR/notify-sandbox.sh" "$SANDBOX_NOTIFY_SCRIPT"
     chmod +x "$SANDBOX_NOTIFY_SCRIPT"
-    echo "Installed $SANDBOX_NOTIFY_SCRIPT"
+    step "Installed $SANDBOX_NOTIFY_SCRIPT"
 
     # Generate plist with expanded $HOME paths
     sed "s|__HOME__|$HOME|g" "$SANDBOX_PLIST_TEMPLATE" > "$SANDBOX_PLIST"
-    echo "Installed $SANDBOX_PLIST"
+    step "Installed $SANDBOX_PLIST"
 
     # Unload existing service if running (ignore errors)
     launchctl unload "$SANDBOX_PLIST" 2>/dev/null || true
 
     # Load the launchd service (starts TCP listener on port 19223)
     launchctl load "$SANDBOX_PLIST"
-    echo "Started launchd service (TCP listener on localhost:19223)"
+    success "Started launchd service (TCP listener on localhost:19223)"
 
     # Configure hooks in sandbox settings.json
-    echo "Configuring sandbox hooks..."
+    step "Configuring sandbox hooks..."
 
     # Note: Use container path, not host path
     # ~/.claude-sandbox/claude-config on host is mounted to /home/claude/.claude in container
@@ -248,20 +247,16 @@ install_sandbox_support() {
         # Create new settings.json
         echo "{\"hooks\":{\"Stop\":[$SANDBOX_STOP_HOOK_CONFIG],\"PermissionRequest\":[$SANDBOX_PERMISSION_HOOK_CONFIG]}}" | jq '.' > "$SANDBOX_SETTINGS_FILE"
     fi
-    echo "Configured hooks in $SANDBOX_SETTINGS_FILE"
+    success "Configured hooks in sandbox settings"
 
-    echo ""
-    echo "Sandbox support installed!"
-    echo ""
-    echo "Note: If you haven't already, rebuild claude-sandbox to include netcat:"
-    echo "  cd <path-to-claude-sandbox> && ./docker/build.sh && ./docker/install.sh"
-    echo ""
+    banner "Sandbox support installed!"
+
+    note "If you haven't already, rebuild claude-sandbox to include netcat:"
+    dim "  cd <path-to-claude-sandbox> && ./docker/build.sh && ./docker/install.sh"
 }
 
 echo ""
-echo "Do you use claude-sandbox (containerized Claude Code)?"
-read -p "Enable sandbox notification support? (y/n) " -n 1 -r
-echo ""
+confirm "Do you use claude-sandbox? Enable sandbox notification support?"
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     install_sandbox_support
 fi
