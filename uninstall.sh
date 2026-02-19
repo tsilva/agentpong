@@ -49,9 +49,7 @@ if [ -f "$STYLE_SCRIPT" ]; then
 fi
 
 # Check focus-window.sh
-if [ -L "$FOCUS_SCRIPT" ]; then
-    list_item "Skip" "$FOCUS_SCRIPT (symlink from aerospace-setup)"
-elif [ -f "$FOCUS_SCRIPT" ]; then
+if [ -f "$FOCUS_SCRIPT" ]; then
     list_item "Remove" "$FOCUS_SCRIPT"
 fi
 
@@ -137,10 +135,8 @@ else
     dim "style.sh not found (already removed?)"
 fi
 
-# Remove focus-window.sh (only if it's a regular file, not a symlink from aerospace-setup)
-if [ -L "$FOCUS_SCRIPT" ]; then
-    dim "focus-window.sh is a symlink (from aerospace-setup) — leaving it alone"
-elif [ -f "$FOCUS_SCRIPT" ]; then
+# Remove focus-window.sh
+if [ -f "$FOCUS_SCRIPT" ]; then
     rm "$FOCUS_SCRIPT"
     success "Removed $FOCUS_SCRIPT"
 else
