@@ -8,7 +8,7 @@
   [![License](https://img.shields.io/github/license/tsilva/agentpong)](LICENSE)
   [![AeroSpace](https://img.shields.io/badge/AeroSpace-optional-8B5CF6?logo=apple)](https://github.com/nikitabobko/AeroSpace)
 
-  **🏓 Claude pings, you pong back — desktop notifications that jump you to the right window, even across workspaces 🔔**
+  **🏓 Your AI agent pings, you pong back — desktop notifications that jump you to the right window, even across workspaces 🔔**
 
   [Installation](#-installation) · [Usage](#-usage) · [How It Works](#-how-it-works) · [Troubleshooting](#-troubleshooting)
 </div>
@@ -17,11 +17,11 @@
 
 ## Overview
 
-**The Pain:** You run Claude Code or OpenCode in the background while working on something else. You keep switching tabs to check if it's done — or worse, you miss a permission prompt and it sits idle for minutes.
+**The Pain:** You run an AI coding assistant in the background while working on something else. You keep switching tabs to check if it's done — or worse, you miss a permission prompt and it sits idle for minutes.
 
 **The Solution:** agentpong sends macOS desktop notifications the instant your AI assistant finishes a task or needs permission. One click jumps you directly to the right IDE window, even if it's buried in another workspace.
 
-**The Result:** Zero tab-switching. Zero missed prompts. Stay in flow while Claude works.
+**The Result:** Zero tab-switching. Zero missed prompts. Stay in flow while your agent works.
 
 <div align="center">
 
@@ -33,7 +33,7 @@
 
 ## ✨ Features
 
-- **🔔 Smart notifications** — Alerts when Claude finishes tasks ("Ready for input") or needs permission ("Permission required")
+- **🔔 Smart notifications** — Alerts when your AI agent finishes tasks ("Ready for input") or needs permission ("Permission required")
 - **🎯 Cross-workspace window focus** — Click notification to jump directly to the right Cursor/VS Code window via AeroSpace
 - **🤖 Multi-tool support** — Works with Claude Code, OpenCode, and claude-sandbox containers
 - **🍎 Works on Sequoia** — Uses AeroSpace instead of broken AppleScript/Hammerspoon APIs
@@ -77,8 +77,8 @@ Without AeroSpace, notifications still work — clicking them will dismiss witho
 ### Claude Code (Cursor / VS Code)
 
 Notifications fire automatically after installation. Start a new Claude Code session and you'll receive alerts when:
-- Claude finishes a task and is ready for input
-- Claude needs permission to proceed
+- The agent finishes a task and is ready for input
+- The agent needs permission to proceed
 
 Click the notification to focus the IDE window.
 
@@ -150,7 +150,7 @@ During installation, select "yes" when asked about sandbox support. This install
 ```
 Container                              Host (macOS)
 ────────────────────────────────────────────────────────────
-Claude Code hook fires
+Agent hook fires
        │
        ▼
 notify.sh connects via ─────────────►  launchd TCP listener
@@ -192,7 +192,7 @@ brew uninstall terminal-notifier
 
 ### Hooks don't fire
 
-Claude Code hooks only work in IDE-integrated terminals (Cursor/VS Code). For standalone terminals like iTerm2, use the Triggers workaround described in [Usage](#-usage).
+Claude Code and OpenCode hooks only work in IDE-integrated terminals (Cursor/VS Code). For standalone terminals like iTerm2, use the Triggers workaround described in [Usage](#-usage).
 
 ## 🤝 Contributing
 
