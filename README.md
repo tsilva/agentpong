@@ -1,14 +1,14 @@
 <div align="center">
-  <img src="logo.png" alt="agentpong" width="512"/>
+  <img src="assets/logo.png" alt="agentpong" width="512"/>
 
   # agentpong
 
   [![GitHub stars](https://img.shields.io/github/stars/tsilva/agentpong?style=flat&logo=github)](https://github.com/tsilva/agentpong)
   [![macOS](https://img.shields.io/badge/macOS-Sequoia%2015.x-blue?logo=apple)](https://www.apple.com/macos/sequoia/)
   [![License](https://img.shields.io/github/license/tsilva/agentpong)](LICENSE)
-  [![AeroSpace](https://img.shields.io/badge/AeroSpace-Tiling%20WM-8B5CF6?logo=apple)](https://github.com/nikitabobko/AeroSpace)
+  [![AeroSpace](https://img.shields.io/badge/AeroSpace-optional-8B5CF6?logo=apple)](https://github.com/nikitabobko/AeroSpace)
 
-  **🏓 Claude pings, you pong back — desktop notifications that focus the right window, even across workspaces 🔔**
+  **🏓 Claude pings, you pong back — desktop notifications that jump you to the right window, even across workspaces 🔔**
 
   [Installation](#-installation) · [Usage](#-usage) · [How It Works](#-how-it-works) · [Troubleshooting](#-troubleshooting)
 </div>
@@ -17,17 +17,17 @@
 
 ## Overview
 
-**The Pain:** You're running Claude Code in the background while working on something else. You keep switching tabs to check if it's done. Or worse — you miss when it needs permission and it sits idle for minutes.
+**The Pain:** You run Claude Code or OpenCode in the background while working on something else. You keep switching tabs to check if it's done — or worse, you miss a permission prompt and it sits idle for minutes.
 
-**The Solution:** agentpong sends macOS desktop notifications the instant Claude finishes a task or needs permission. One click jumps you directly to the right IDE window — even if it's buried in another workspace.
+**The Solution:** agentpong sends macOS desktop notifications the instant your AI assistant finishes a task or needs permission. One click jumps you directly to the right IDE window, even if it's buried in another workspace.
 
 **The Result:** Zero tab-switching. Zero missed prompts. Stay in flow while Claude works.
 
 <div align="center">
 
-| ⚡ Setup | 🎯 Focus | 🖥️ Workspaces |
-|---------|----------|---------------|
-| 30 seconds | 1-click | Cross-workspace |
+| ⚡ Setup | 🎯 Focus | 🖥️ Workspaces | 🤖 Tools |
+|---------|----------|---------------|---------|
+| 30 seconds | 1-click | Cross-workspace | Claude Code · OpenCode · claude-sandbox |
 
 </div>
 
@@ -35,6 +35,7 @@
 
 - **🔔 Smart notifications** — Alerts when Claude finishes tasks ("Ready for input") or needs permission ("Permission required")
 - **🎯 Cross-workspace window focus** — Click notification to jump directly to the right Cursor/VS Code window via AeroSpace
+- **🤖 Multi-tool support** — Works with Claude Code, OpenCode, and claude-sandbox containers
 - **🍎 Works on Sequoia** — Uses AeroSpace instead of broken AppleScript/Hammerspoon APIs
 - **⚙️ Zero config** — Install script handles everything automatically
 
@@ -42,7 +43,7 @@
 
 - **macOS** (Sequoia 15.x supported)
 - **Homebrew** for installing dependencies
-- **Cursor** or **VS Code** with Claude Code extension
+- **Cursor** or **VS Code** with Claude Code or OpenCode
 
 ### Optional
 
@@ -59,8 +60,9 @@ cd agentpong
 The installer will:
 1. Install `terminal-notifier` via Homebrew (if needed)
 2. Copy notification and focus scripts to `~/.claude/`
-3. Configure Claude Code hooks in `~/.claude/settings.json`
-4. Detect AeroSpace and enable window focus if available
+3. Configure `Stop` and `PermissionRequest` hooks for Claude Code
+4. Install the OpenCode plugin to `~/.config/opencode/plugins/`
+5. Detect AeroSpace and enable window focus if available
 
 ### Post-install (with AeroSpace)
 
@@ -68,19 +70,23 @@ The installer will:
 2. Grant Accessibility permissions when prompted
 3. Restart your terminal/IDE
 
-Without AeroSpace, notifications still work — clicking them will dismiss the notification but won't switch to the IDE window.
+Without AeroSpace, notifications still work — clicking them will dismiss without switching to the IDE window.
 
 ## 💡 Usage
 
-### Cursor / VS Code
+### Claude Code (Cursor / VS Code)
 
-Notifications work automatically after installation. Start a new Claude Code session and you'll receive notifications when:
+Notifications fire automatically after installation. Start a new Claude Code session and you'll receive alerts when:
 - Claude finishes a task and is ready for input
 - Claude needs permission to proceed
 
 Click the notification to focus the IDE window.
 
-### iTerm2
+### OpenCode
+
+The OpenCode plugin hooks into `session.idle` and `permission.asked` events — no extra configuration needed after install. Notifications appear with "OpenCode" prefix.
+
+### iTerm2 (Standalone Terminal)
 
 Claude Code hooks don't fire in standalone terminals. Set up iTerm Triggers instead:
 
@@ -94,20 +100,26 @@ Claude Code hooks don't fire in standalone terminals. Set up iTerm Triggers inst
 ## 🔧 How It Works
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+┌─────────────────┐     ┌──────────────────┐     ┌──────────────────┐
 │  Claude Code    │────▶│    notify.sh     │────▶│ terminal-notifier│
-│  Stop Hook      │     │                  │     │                 │
-└─────────────────┘     └──────────────────┘     └────────┬────────┘
+│  Stop Hook      │     │                  │     │                  │
+└─────────────────┘     └──────────────────┘     └────────┬─────────┘
                                                           │
-                                                          ▼ click
-                        ┌──────────────────┐     ┌─────────────────┐
-                        │   AeroSpace      │◀────│ focus-window.sh │
-                        │  (focus window)  │     │    (bundled)    │
-                        └──────────────────┘     └─────────────────┘
+┌─────────────────┐     ┌──────────────────┐             │ click
+│  OpenCode       │────▶│  agentpong.ts    │             ▼
+│  session.idle   │     │  (plugin)        │    ┌─────────────────┐
+└─────────────────┘     └──────────────────┘    │ focus-window.sh │
+                                                 └────────┬────────┘
+                                                          │
+                                                          ▼
+                                                 ┌─────────────────┐
+                                                 │    AeroSpace    │
+                                                 │  (focus window) │
+                                                 └─────────────────┘
 ```
 
-1. Claude Code's `Stop` or `PermissionRequest` hook triggers `notify.sh`
-2. `notify.sh` sends a notification via `terminal-notifier`
+1. Hook fires (`Stop`/`PermissionRequest` for Claude Code; `session.idle`/`permission.asked` for OpenCode)
+2. `notify.sh` sends a notification via `terminal-notifier` with the project workspace name
 3. Clicking the notification executes `~/.claude/focus-window.sh` (if installed)
 4. The focus script finds and focuses the correct IDE window via AeroSpace
 
@@ -133,10 +145,8 @@ During installation, select "yes" when asked about sandbox support. This install
 - A container-compatible notify script that connects via `host.docker.internal`
 - Hooks configured in `~/.claude-sandbox/claude-config/settings.json`
 
-**Requirements:**
-- claude-sandbox must have `netcat-openbsd` in its Dockerfile (included in recent versions)
+**Requirements:** claude-sandbox must have `netcat-openbsd` in its Dockerfile (included in recent versions)
 
-**How it works:**
 ```
 Container                              Host (macOS)
 ────────────────────────────────────────────────────────────
@@ -156,7 +166,7 @@ host.docker.internal:19223                    │
 ./uninstall.sh
 ```
 
-This removes the notification scripts, hooks, and sandbox support (if installed). terminal-notifier is kept (you may have other uses for it).
+Removes notification scripts, hooks, and sandbox support (if installed). `terminal-notifier` is kept since you may use it elsewhere.
 
 To fully remove dependencies:
 ```bash
@@ -180,9 +190,9 @@ brew uninstall terminal-notifier
 5. Test window listing: `aerospace list-windows --all | grep Cursor`
 6. Test focus script directly: `~/.claude/focus-window.sh "your-project-name"`
 
-### Notifications work but hooks don't fire
+### Hooks don't fire
 
-Claude Code hooks only work in IDE-integrated terminals (Cursor/VS Code). For standalone terminals like iTerm2, use the Triggers workaround described above.
+Claude Code hooks only work in IDE-integrated terminals (Cursor/VS Code). For standalone terminals like iTerm2, use the Triggers workaround described in [Usage](#-usage).
 
 ## 🤝 Contributing
 
