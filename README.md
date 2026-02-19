@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/logo.png" alt="agentpong" width="512"/>
+  <img src="logo.png" alt="agentpong" width="512"/>
 
   # agentpong
 
