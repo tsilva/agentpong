@@ -4,11 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-claudepong is a macOS notification system that alerts users when Claude Code is ready for input. Claude pings, you pong back. It uses AeroSpace and terminal-notifier to send desktop notifications and focus the correct IDE window when clicked - even across multiple workspaces.
+claudepong is a macOS notification system that alerts users when Claude Code or OpenCode is ready for input. Claude pings, you pong back. It uses AeroSpace and terminal-notifier to send desktop notifications and focus the correct IDE window when clicked - even across multiple workspaces.
+
+## Supported Tools
+
+- **Claude Code** - Full support with `Stop` and `PermissionRequest` hooks
+- **OpenCode** - Full support with `Stop` and `PermissionRequest` hooks
+- **claude-sandbox** - Full support via TCP listener (port 19223)
 
 ## Architecture
 
-Five files form the complete system:
+Core files that form the complete system:
 
 - **notify.sh** - Shell script called by Claude Code hooks. Uses terminal-notifier to send notifications. Conditionally includes `-execute` with focus-window.sh if available.
 - **focus-window.sh** - AeroSpace window focusing script bundled with claudepong. Locates the aerospace binary, finds the correct IDE window, and focuses it. Falls back to AppleScript if AeroSpace is unavailable.
@@ -23,10 +29,10 @@ The system uses AeroSpace because:
 - AeroSpace uses its own virtual workspace abstraction that works reliably on Sequoia without requiring SIP to be disabled
 
 Flow:
-1. Claude Code `Stop` hook fires when Claude finishes a task, or `PermissionRequest` hook fires when Claude needs permission
-2. `notify.sh` is executed with workspace name from `CLAUDE_PROJECT_DIR`
-3. Script calls terminal-notifier — if `~/.claude/focus-window.sh` exists and is executable, `-execute` is included to trigger it on click; otherwise the notification just dismisses on click
-4. Notification appears with workspace name in title
+1. Claude Code `Stop` hook (or OpenCode `Stop` hook) fires when the AI finishes a task, or `PermissionRequest` hook fires when permission is needed
+2. `notify.sh` is executed with workspace name from `CLAUDE_PROJECT_DIR` (Claude) or `OPENCODE_PROJECT_DIR` (OpenCode)
+3. Script calls terminal-notifier — if `focus-window.sh` exists and is executable, `-execute` is included to trigger it on click; otherwise the notification just dismisses on click
+4. Notification appears with workspace name in title (prefixed with "Claude Code" or "OpenCode" based on which tool triggered it)
 5. On click (with focus-window.sh), focus-window.sh executes:
    - Locates aerospace binary at `/opt/homebrew/bin/aerospace` or `/usr/local/bin/aerospace`
    - `aerospace list-windows` finds the Cursor/Code window matching the workspace
@@ -34,7 +40,7 @@ Flow:
    - `aerospace focus --window-id <id>` focuses the window
    - Falls back to AppleScript `tell application "Cursor" to activate` if AeroSpace is unavailable
 
-Claude Code hooks only work in IDE-integrated terminals (via SSE connection). For standalone terminals like iTerm2, users must configure iTerm's Triggers feature as a workaround.
+Note: Claude Code and OpenCode hooks only work in IDE-integrated terminals (via SSE connection). For standalone terminals like iTerm2, users must configure iTerm's Triggers feature as a workaround.
 
 ## Testing
 

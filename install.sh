@@ -205,6 +205,107 @@ dim "       Action: Run Command..."
 dim "       Parameters: $NOTIFY_SCRIPT \"Ready for input\""
 dim "       Check: Instant"
 
+# === opencode Integration (Optional) ===
+install_opencode_support() {
+    section "Installing opencode support"
+
+    # OpenCode config paths
+    OPENCODE_DIR="$HOME/.opencode"
+    OPENCODE_NOTIFY_SCRIPT="$OPENCODE_DIR/notify.sh"
+    OPENCODE_STYLE_SCRIPT="$OPENCODE_DIR/style.sh"
+    OPENCODE_SETTINGS_FILE="$OPENCODE_DIR/settings.json"
+    OPENCODE_FOCUS_SCRIPT="$OPENCODE_DIR/focus-window.sh"
+
+    # Create .opencode directory if needed
+    mkdir -p "$OPENCODE_DIR"
+
+    # Copy notify.sh
+    step "Installing notify.sh to opencode directory..."
+    cp "$SCRIPT_DIR/notify.sh" "$OPENCODE_NOTIFY_SCRIPT"
+    chmod +x "$OPENCODE_NOTIFY_SCRIPT"
+
+    # Copy style.sh (used by notify.sh for styled errors)
+    step "Installing style.sh to opencode directory..."
+    cp "$SCRIPT_DIR/style.sh" "$OPENCODE_STYLE_SCRIPT"
+    chmod +x "$OPENCODE_STYLE_SCRIPT"
+
+    # Copy focus-window.sh
+    step "Installing focus-window.sh to opencode directory..."
+    cp "$SCRIPT_DIR/focus-window.sh" "$OPENCODE_FOCUS_SCRIPT"
+    chmod +x "$OPENCODE_FOCUS_SCRIPT"
+
+    # Configure settings.json
+    step "Configuring opencode hooks..."
+
+    # Stop hook - fires when OpenCode finishes a task
+    OPENCODE_STOP_HOOK_CONFIG='{
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "'"$OPENCODE_NOTIFY_SCRIPT"' '\''Ready for input'\''"
+        }
+      ]
+    }'
+
+    # PermissionRequest hook - fires when permission dialog is shown
+    OPENCODE_PERMISSION_HOOK_CONFIG='{
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "'"$OPENCODE_NOTIFY_SCRIPT"' '\''Permission required'\''"
+        }
+      ]
+    }'
+
+    if [ -f "$OPENCODE_SETTINGS_FILE" ]; then
+        # Backup existing settings
+        cp "$OPENCODE_SETTINGS_FILE" "$OPENCODE_SETTINGS_FILE.backup"
+        dim "Backed up existing settings to $OPENCODE_SETTINGS_FILE.backup"
+
+        # Check if Stop hook already exists
+        if jq -e '.hooks.Stop' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
+            warn "Stop hook already exists in opencode settings.json"
+            confirm "Replace existing Stop hook?"
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                jq --argjson hook "[$OPENCODE_STOP_HOOK_CONFIG]" '.hooks.Stop = $hook' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
+                mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
+            else
+                info "Keeping existing Stop hook."
+            fi
+        else
+            jq --argjson hook "[$OPENCODE_STOP_HOOK_CONFIG]" '.hooks.Stop = $hook' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
+            mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
+        fi
+
+        # Check if PermissionRequest hook already exists
+        if jq -e '.hooks.PermissionRequest' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
+            warn "PermissionRequest hook already exists in opencode settings.json"
+            confirm "Replace existing PermissionRequest hook?"
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                jq --argjson hook "[$OPENCODE_PERMISSION_HOOK_CONFIG]" '.hooks.PermissionRequest = $hook' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
+                mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
+            else
+                info "Keeping existing PermissionRequest hook."
+            fi
+        else
+            jq --argjson hook "[$OPENCODE_PERMISSION_HOOK_CONFIG]" '.hooks.PermissionRequest = $hook' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
+            mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
+        fi
+    else
+        # Create new settings.json with both hooks
+        echo "{\"hooks\":{\"Stop\":[$OPENCODE_STOP_HOOK_CONFIG],\"PermissionRequest\":[$OPENCODE_PERMISSION_HOOK_CONFIG]}}" | jq '.' > "$OPENCODE_SETTINGS_FILE"
+    fi
+
+    success "Configured opencode hooks"
+    banner "opencode support installed!"
+
+    info "OpenCode notifications will appear with workspace names."
+    dim "Start a new OpenCode session and you'll get notifications"
+    dim "when OpenCode is ready for input."
+}
+
 # === claude-sandbox Integration (Optional) ===
 install_sandbox_support() {
     section "Installing sandbox support"
@@ -279,6 +380,12 @@ install_sandbox_support() {
     note "If you haven't already, rebuild claude-sandbox to include netcat:"
     dim "  cd <path-to-claude-sandbox> && ./docker/build.sh && ./docker/install.sh"
 }
+
+echo ""
+confirm "Do you use opencode? Enable opencode notification support?"
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    install_opencode_support
+fi
 
 echo ""
 confirm "Do you use claude-sandbox? Enable sandbox notification support?"

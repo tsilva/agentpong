@@ -23,6 +23,13 @@ SANDBOX_SETTINGS_FILE="$SANDBOX_CONFIG_DIR/settings.json"
 SANDBOX_HANDLER="$CLAUDE_DIR/notify-handler.sh"
 SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.claudepong.sandbox.plist"
 
+# OpenCode support paths
+OPENCODE_DIR="$HOME/.opencode"
+OPENCODE_NOTIFY_SCRIPT="$OPENCODE_DIR/notify.sh"
+OPENCODE_STYLE_SCRIPT="$OPENCODE_DIR/style.sh"
+OPENCODE_FOCUS_SCRIPT="$OPENCODE_DIR/focus-window.sh"
+OPENCODE_SETTINGS_FILE="$OPENCODE_DIR/settings.json"
+
 # Source styling library (graceful fallback to plain echo)
 source "$SCRIPT_DIR/style.sh" 2>/dev/null || true
 
@@ -69,6 +76,22 @@ if [ -f "$HAMMERSPOON_MODULE" ]; then
 fi
 if [ -f "$HAMMERSPOON_INIT" ] && grep -q 'require("claude-notify")' "$HAMMERSPOON_INIT" 2>/dev/null; then
     list_item "Remove" "claude-notify from Hammerspoon config"
+fi
+
+# Check opencode support
+if [ -f "$OPENCODE_NOTIFY_SCRIPT" ]; then
+    list_item "Remove" "$OPENCODE_NOTIFY_SCRIPT"
+fi
+if [ -f "$OPENCODE_STYLE_SCRIPT" ]; then
+    list_item "Remove" "$OPENCODE_STYLE_SCRIPT"
+fi
+if [ -f "$OPENCODE_FOCUS_SCRIPT" ]; then
+    list_item "Remove" "$OPENCODE_FOCUS_SCRIPT"
+fi
+if [ -f "$OPENCODE_SETTINGS_FILE" ] && command -v jq &> /dev/null; then
+    if jq -e '.hooks.Stop' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
+        list_item "Remove" "hooks from opencode settings.json"
+    fi
 fi
 
 # Check sandbox support
@@ -198,6 +221,70 @@ if [ -f "$HAMMERSPOON_INIT" ]; then
             osascript -e 'tell application "Hammerspoon" to execute lua code "hs.reload()"' 2>/dev/null || true
         fi
     fi
+fi
+
+# === Remove OpenCode Support (if installed) ===
+section "Cleaning up opencode support"
+
+# Remove opencode notify.sh
+if [ -f "$OPENCODE_NOTIFY_SCRIPT" ]; then
+    rm "$OPENCODE_NOTIFY_SCRIPT"
+    success "Removed $OPENCODE_NOTIFY_SCRIPT"
+else
+    dim "opencode notify.sh not found (already removed?)"
+fi
+
+# Remove opencode style.sh
+if [ -f "$OPENCODE_STYLE_SCRIPT" ]; then
+    rm "$OPENCODE_STYLE_SCRIPT"
+    success "Removed $OPENCODE_STYLE_SCRIPT"
+else
+    dim "opencode style.sh not found (already removed?)"
+fi
+
+# Remove opencode focus-window.sh
+if [ -f "$OPENCODE_FOCUS_SCRIPT" ]; then
+    rm "$OPENCODE_FOCUS_SCRIPT"
+    success "Removed $OPENCODE_FOCUS_SCRIPT"
+else
+    dim "opencode focus-window.sh not found (already removed?)"
+fi
+
+# Remove hooks from opencode settings.json
+if [ -f "$OPENCODE_SETTINGS_FILE" ]; then
+    if command -v jq &> /dev/null; then
+        # Backup before modifying
+        cp "$OPENCODE_SETTINGS_FILE" "$OPENCODE_SETTINGS_FILE.backup"
+
+        # Remove Stop hook
+        if jq -e '.hooks.Stop' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
+            jq 'del(.hooks.Stop)' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
+            mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
+            success "Removed Stop hook from opencode settings.json"
+        else
+            dim "No Stop hook found in opencode settings.json"
+        fi
+
+        # Remove PermissionRequest hook
+        if jq -e '.hooks.PermissionRequest' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
+            jq 'del(.hooks.PermissionRequest)' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
+            mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
+            success "Removed PermissionRequest hook from opencode settings.json"
+        else
+            dim "No PermissionRequest hook found in opencode settings.json"
+        fi
+
+        # Clean up empty hooks object if needed
+        if jq -e '.hooks == {}' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
+            jq 'del(.hooks)' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
+            mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
+        fi
+    else
+        warn "jq not installed, cannot automatically remove hooks from opencode settings.json"
+        dim "Please manually remove the Stop and PermissionRequest hooks from $OPENCODE_SETTINGS_FILE"
+    fi
+else
+    dim "opencode settings.json not found"
 fi
 
 # === Remove Sandbox Support (if installed) ===
