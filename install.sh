@@ -6,11 +6,15 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SRC_DIR="$SCRIPT_DIR/src"
+CONFIG_DIR="$SCRIPT_DIR/config"
+PLUGINS_DIR="$SCRIPT_DIR/plugins"
+
 CLAUDE_DIR="$HOME/.claude"
 NOTIFY_SCRIPT="$CLAUDE_DIR/notify.sh"
 STYLE_SCRIPT="$CLAUDE_DIR/style.sh"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
-FOCUS_SCRIPT_SRC="$SCRIPT_DIR/focus-window.sh"
+FOCUS_SCRIPT_SRC="$SRC_DIR/focus-window.sh"
 FOCUS_SCRIPT_DST="$CLAUDE_DIR/focus-window.sh"
 
 # Sandbox support paths
@@ -19,11 +23,11 @@ SANDBOX_CONFIG_DIR="$SANDBOX_DIR/claude-config"
 SANDBOX_NOTIFY_SCRIPT="$SANDBOX_CONFIG_DIR/notify.sh"
 SANDBOX_SETTINGS_FILE="$SANDBOX_CONFIG_DIR/settings.json"
 SANDBOX_HANDLER="$CLAUDE_DIR/notify-handler.sh"
-SANDBOX_PLIST_TEMPLATE="$SCRIPT_DIR/com.agentpong.sandbox.plist.template"
+SANDBOX_PLIST_TEMPLATE="$CONFIG_DIR/com.agentpong.sandbox.plist.template"
 SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.agentpong.sandbox.plist"
 
 # Source styling library (graceful fallback to plain echo)
-source "$SCRIPT_DIR/style.sh" 2>/dev/null || true
+source "$SRC_DIR/style.sh" 2>/dev/null || true
 
 header "agentpong" "Installer"
 
@@ -81,12 +85,12 @@ mkdir -p "$CLAUDE_DIR"
 
 # Copy notify.sh
 step "Installing notify.sh..."
-cp "$SCRIPT_DIR/notify.sh" "$NOTIFY_SCRIPT"
+cp "$SRC_DIR/notify.sh" "$NOTIFY_SCRIPT"
 chmod +x "$NOTIFY_SCRIPT"
 
 # Copy style.sh (used by notify.sh for styled errors)
 step "Installing style.sh..."
-cp "$SCRIPT_DIR/style.sh" "$STYLE_SCRIPT"
+cp "$SRC_DIR/style.sh" "$STYLE_SCRIPT"
 chmod +x "$STYLE_SCRIPT"
 
 # Install focus-window.sh
@@ -209,17 +213,17 @@ install_opencode_support() {
 
     # Copy notify.sh
     step "Installing notify.sh to opencode directory..."
-    cp "$SCRIPT_DIR/notify.sh" "$OPENCODE_NOTIFY_SCRIPT"
+    cp "$SRC_DIR/notify.sh" "$OPENCODE_NOTIFY_SCRIPT"
     chmod +x "$OPENCODE_NOTIFY_SCRIPT"
 
     # Copy style.sh (used by notify.sh for styled errors)
     step "Installing style.sh to opencode directory..."
-    cp "$SCRIPT_DIR/style.sh" "$OPENCODE_STYLE_SCRIPT"
+    cp "$SRC_DIR/style.sh" "$OPENCODE_STYLE_SCRIPT"
     chmod +x "$OPENCODE_STYLE_SCRIPT"
 
     # Copy focus-window.sh
     step "Installing focus-window.sh to opencode directory..."
-    cp "$SCRIPT_DIR/focus-window.sh" "$OPENCODE_FOCUS_SCRIPT"
+    cp "$SRC_DIR/focus-window.sh" "$OPENCODE_FOCUS_SCRIPT"
     chmod +x "$OPENCODE_FOCUS_SCRIPT"
 
     # Install OpenCode plugin
@@ -227,7 +231,7 @@ install_opencode_support() {
     OPENCODE_PLUGIN_FILE="$OPENCODE_PLUGIN_DIR/agentpong.ts"
     step "Installing OpenCode plugin..."
     mkdir -p "$OPENCODE_PLUGIN_DIR"
-    cp "$SCRIPT_DIR/opencode-plugin.ts" "$OPENCODE_PLUGIN_FILE"
+    cp "$PLUGINS_DIR/opencode/agentpong.ts" "$OPENCODE_PLUGIN_FILE"
     success "Installed OpenCode plugin to $OPENCODE_PLUGIN_FILE"
 
     # Clean up legacy broken hooks from ~/.opencode/settings.json
@@ -278,12 +282,12 @@ install_sandbox_support() {
     mkdir -p "$HOME/Library/LaunchAgents"
 
     # Copy handler script to ~/.claude/
-    cp "$SCRIPT_DIR/notify-handler.sh" "$SANDBOX_HANDLER"
+    cp "$SRC_DIR/notify-handler.sh" "$SANDBOX_HANDLER"
     chmod +x "$SANDBOX_HANDLER"
     step "Installed $SANDBOX_HANDLER"
 
     # Copy sandbox notify script to ~/.claude-sandbox/claude-config/
-    cp "$SCRIPT_DIR/notify-sandbox.sh" "$SANDBOX_NOTIFY_SCRIPT"
+    cp "$SRC_DIR/notify-sandbox.sh" "$SANDBOX_NOTIFY_SCRIPT"
     chmod +x "$SANDBOX_NOTIFY_SCRIPT"
     step "Installed $SANDBOX_NOTIFY_SCRIPT"
 

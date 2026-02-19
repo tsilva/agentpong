@@ -6,6 +6,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SRC_DIR="$SCRIPT_DIR/src"
 CLAUDE_DIR="$HOME/.claude"
 NOTIFY_SCRIPT="$CLAUDE_DIR/notify.sh"
 STYLE_SCRIPT="$CLAUDE_DIR/style.sh"
@@ -33,7 +34,7 @@ OPENCODE_PLUGIN_FILE="$HOME/.config/opencode/plugins/agentpong.ts"
 OPENCODE_CONFIG_SETTINGS="$HOME/.config/opencode/settings.json"
 
 # Source styling library (graceful fallback to plain echo)
-source "$SCRIPT_DIR/style.sh" 2>/dev/null || true
+source "$SRC_DIR/style.sh" 2>/dev/null || true
 
 header "agentpong" "Uninstaller"
 
