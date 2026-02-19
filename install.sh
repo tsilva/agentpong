@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# claudepong - Installation Script
+# agentpong - Installation Script
 #
 
 set -e
@@ -19,13 +19,13 @@ SANDBOX_CONFIG_DIR="$SANDBOX_DIR/claude-config"
 SANDBOX_NOTIFY_SCRIPT="$SANDBOX_CONFIG_DIR/notify.sh"
 SANDBOX_SETTINGS_FILE="$SANDBOX_CONFIG_DIR/settings.json"
 SANDBOX_HANDLER="$CLAUDE_DIR/notify-handler.sh"
-SANDBOX_PLIST_TEMPLATE="$SCRIPT_DIR/com.claudepong.sandbox.plist.template"
-SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.claudepong.sandbox.plist"
+SANDBOX_PLIST_TEMPLATE="$SCRIPT_DIR/com.agentpong.sandbox.plist.template"
+SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.agentpong.sandbox.plist"
 
 # Source styling library (graceful fallback to plain echo)
 source "$SCRIPT_DIR/style.sh" 2>/dev/null || true
 
-header "claudepong" "Installer"
+header "agentpong" "Installer"
 
 # Check for macOS
 if [[ "$OSTYPE" != "darwin"* ]]; then
@@ -224,7 +224,7 @@ install_opencode_support() {
 
     # Install OpenCode plugin
     OPENCODE_PLUGIN_DIR="$HOME/.config/opencode/plugins"
-    OPENCODE_PLUGIN_FILE="$OPENCODE_PLUGIN_DIR/claudepong.ts"
+    OPENCODE_PLUGIN_FILE="$OPENCODE_PLUGIN_DIR/agentpong.ts"
     step "Installing OpenCode plugin..."
     mkdir -p "$OPENCODE_PLUGIN_DIR"
     cp "$SCRIPT_DIR/opencode-plugin.ts" "$OPENCODE_PLUGIN_FILE"

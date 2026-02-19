@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# claudepong - Uninstallation Script
+# agentpong - Uninstallation Script
 #
 
 set -e
@@ -21,7 +21,7 @@ SANDBOX_CONFIG_DIR="$SANDBOX_DIR/claude-config"
 SANDBOX_NOTIFY_SCRIPT="$SANDBOX_CONFIG_DIR/notify.sh"
 SANDBOX_SETTINGS_FILE="$SANDBOX_CONFIG_DIR/settings.json"
 SANDBOX_HANDLER="$CLAUDE_DIR/notify-handler.sh"
-SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.claudepong.sandbox.plist"
+SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.agentpong.sandbox.plist"
 
 # OpenCode support paths
 OPENCODE_DIR="$HOME/.opencode"
@@ -29,13 +29,13 @@ OPENCODE_NOTIFY_SCRIPT="$OPENCODE_DIR/notify.sh"
 OPENCODE_STYLE_SCRIPT="$OPENCODE_DIR/style.sh"
 OPENCODE_FOCUS_SCRIPT="$OPENCODE_DIR/focus-window.sh"
 OPENCODE_SETTINGS_FILE="$OPENCODE_DIR/settings.json"
-OPENCODE_PLUGIN_FILE="$HOME/.config/opencode/plugins/claudepong.ts"
+OPENCODE_PLUGIN_FILE="$HOME/.config/opencode/plugins/agentpong.ts"
 OPENCODE_CONFIG_SETTINGS="$HOME/.config/opencode/settings.json"
 
 # Source styling library (graceful fallback to plain echo)
 source "$SCRIPT_DIR/style.sh" 2>/dev/null || true
 
-header "claudepong" "Uninstaller"
+header "agentpong" "Uninstaller"
 
 # === Preview what will be done ===
 section "Actions to perform"

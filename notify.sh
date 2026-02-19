@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# claudepong - Notification Script
+# agentpong - Notification Script
 # Sends a macOS notification when Claude Code or OpenCode is ready for input.
 # If focus-window.sh is installed, clicking the notification focuses the
 # correct IDE window (requires AeroSpace for cross-workspace support).

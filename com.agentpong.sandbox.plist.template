@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.claudepong.sandbox</string>
+    <string>com.agentpong.sandbox</string>
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>

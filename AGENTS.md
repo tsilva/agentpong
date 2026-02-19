@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-claudepong is a macOS notification system that alerts users when Claude Code or OpenCode is ready for input. Claude pings, you pong back. It uses AeroSpace and terminal-notifier to send desktop notifications and focus the correct IDE window when clicked - even across multiple workspaces.
+agentpong is a macOS notification system that alerts users when Claude Code or OpenCode is ready for input. Claude pings, you pong back. It uses AeroSpace and terminal-notifier to send desktop notifications and focus the correct IDE window when clicked - even across multiple workspaces.
 
 ## Supported Tools
 
@@ -17,8 +17,8 @@ claudepong is a macOS notification system that alerts users when Claude Code or 
 Core files that form the complete system:
 
 - **notify.sh** - Shell script called by Claude Code hooks and the OpenCode plugin. Uses terminal-notifier to send notifications. Conditionally includes `-execute` with focus-window.sh if available.
-- **focus-window.sh** - AeroSpace window focusing script bundled with claudepong. Locates the aerospace binary, finds the correct IDE window, and focuses it. Falls back to AppleScript if AeroSpace is unavailable.
-- **opencode-plugin.ts** - OpenCode plugin installed to `~/.config/opencode/plugins/claudepong.ts`. Hooks into `session.idle` (equivalent to Stop) and `permission.asked` (equivalent to PermissionRequest) events, calling `~/.opencode/notify.sh` with `OPENCODE_PROJECT_DIR` and `OPENCODE` env vars set.
+- **focus-window.sh** - AeroSpace window focusing script bundled with agentpong. Locates the aerospace binary, finds the correct IDE window, and focuses it. Falls back to AppleScript if AeroSpace is unavailable.
+- **opencode-plugin.ts** - OpenCode plugin installed to `~/.config/opencode/plugins/agentpong.ts`. Hooks into `session.idle` (equivalent to Stop) and `permission.asked` (equivalent to PermissionRequest) events, calling `~/.opencode/notify.sh` with `OPENCODE_PROJECT_DIR` and `OPENCODE` env vars set.
 - **install.sh** - Installs terminal-notifier (if needed), copies scripts to `~/.claude/`, detects AeroSpace (optional), configures the `Stop` and `PermissionRequest` hooks for Claude Code, and installs the OpenCode plugin to `~/.config/opencode/plugins/`.
 - **uninstall.sh** - Removes the notification scripts and cleans up configurations. Removes the OpenCode plugin and cleans up any legacy broken hooks from settings.json files.
 

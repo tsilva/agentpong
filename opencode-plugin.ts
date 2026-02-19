@@ -1,7 +1,7 @@
 import { exec } from "child_process"
 import { join } from "path"
 
-export const claudepong = async ({ directory }: { directory: string }) => {
+export const agentpong = async ({ directory }: { directory: string }) => {
   const notifyScript = join(process.env.HOME || "~", ".opencode", "notify.sh")
 
   const sendNotification = (message: string) => {

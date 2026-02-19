@@ -2,7 +2,7 @@
 
 ## Context
 
-claudepong sends macOS notifications when Claude Code needs attention. Currently, processing a notification requires clicking it with the mouse. The user wants a keyboard shortcut to cycle through pending notifications, executing each one's focus action (switching AeroSpace workspace + focusing IDE window) without touching the mouse.
+agentpong sends macOS notifications when Claude Code needs attention. Currently, processing a notification requires clicking it with the mouse. The user wants a keyboard shortcut to cycle through pending notifications, executing each one's focus action (switching AeroSpace workspace + focusing IDE window) without touching the mouse.
 
 **Key constraint:** macOS has no stable API to programmatically "click" Notification Center items. Maintaining a separate queue file would get out of sync with clicked/dismissed notifications.
 
@@ -24,7 +24,7 @@ Run `terminal-notifier -list ALL` from a normal terminal (not sandboxed) after t
 
 ```
 #!/bin/bash
-# Processes the next pending claudepong notification via keyboard shortcut.
+# Processes the next pending agentpong notification via keyboard shortcut.
 # Queries terminal-notifier for active notifications, focuses the next
 # workspace, and dismisses the notification — no mouse needed.
 ```

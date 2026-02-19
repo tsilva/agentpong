@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# claudepong - AeroSpace Window Focusing Script
+# agentpong - AeroSpace Window Focusing Script
 # Executed when user clicks a notification to focus the correct IDE window.
 #
 # Requires AeroSpace tiling window manager. If AeroSpace is not available,

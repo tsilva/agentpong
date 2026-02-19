@@ -1,11 +1,11 @@
 <div align="center">
-  <img src="logo.png" alt="claudepong" width="512"/>
+  <img src="logo.png" alt="agentpong" width="512"/>
 
-  # claudepong
+  # agentpong
 
-  [![GitHub stars](https://img.shields.io/github/stars/tsilva/claudepong?style=flat&logo=github)](https://github.com/tsilva/claudepong)
+  [![GitHub stars](https://img.shields.io/github/stars/tsilva/agentpong?style=flat&logo=github)](https://github.com/tsilva/agentpong)
   [![macOS](https://img.shields.io/badge/macOS-Sequoia%2015.x-blue?logo=apple)](https://www.apple.com/macos/sequoia/)
-  [![License](https://img.shields.io/github/license/tsilva/claudepong)](LICENSE)
+  [![License](https://img.shields.io/github/license/tsilva/agentpong)](LICENSE)
   [![AeroSpace](https://img.shields.io/badge/AeroSpace-Tiling%20WM-8B5CF6?logo=apple)](https://github.com/nikitabobko/AeroSpace)
 
   **🏓 Claude pings, you pong back — desktop notifications that focus the right window, even across workspaces 🔔**
@@ -19,7 +19,7 @@
 
 **The Pain:** You're running Claude Code in the background while working on something else. You keep switching tabs to check if it's done. Or worse — you miss when it needs permission and it sits idle for minutes.
 
-**The Solution:** claudepong sends macOS desktop notifications the instant Claude finishes a task or needs permission. One click jumps you directly to the right IDE window — even if it's buried in another workspace.
+**The Solution:** agentpong sends macOS desktop notifications the instant Claude finishes a task or needs permission. One click jumps you directly to the right IDE window — even if it's buried in another workspace.
 
 **The Result:** Zero tab-switching. Zero missed prompts. Stay in flow while Claude works.
 
@@ -51,8 +51,8 @@
 ## 🚀 Installation
 
 ```bash
-git clone https://github.com/tsilva/claudepong.git
-cd claudepong
+git clone https://github.com/tsilva/agentpong.git
+cd agentpong
 ./install.sh
 ```
 
@@ -186,7 +186,7 @@ Claude Code hooks only work in IDE-integrated terminals (Cursor/VS Code). For st
 
 ## 🤝 Contributing
 
-Contributions welcome! Feel free to [open an issue](https://github.com/tsilva/claudepong/issues) or submit a pull request.
+Contributions welcome! Feel free to [open an issue](https://github.com/tsilva/agentpong/issues) or submit a pull request.
 
 ## 📄 License
 
@@ -196,6 +196,6 @@ Contributions welcome! Feel free to [open an issue](https://github.com/tsilva/cl
 
 <div align="center">
 
-Found this useful? [⭐ Star the repo](https://github.com/tsilva/claudepong) to help others discover it!
+Found this useful? [⭐ Star the repo](https://github.com/tsilva/agentpong) to help others discover it!
 
 </div>
