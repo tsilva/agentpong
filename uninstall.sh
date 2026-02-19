@@ -29,6 +29,8 @@ OPENCODE_NOTIFY_SCRIPT="$OPENCODE_DIR/notify.sh"
 OPENCODE_STYLE_SCRIPT="$OPENCODE_DIR/style.sh"
 OPENCODE_FOCUS_SCRIPT="$OPENCODE_DIR/focus-window.sh"
 OPENCODE_SETTINGS_FILE="$OPENCODE_DIR/settings.json"
+OPENCODE_PLUGIN_FILE="$HOME/.config/opencode/plugins/claudepong.ts"
+OPENCODE_CONFIG_SETTINGS="$HOME/.config/opencode/settings.json"
 
 # Source styling library (graceful fallback to plain echo)
 source "$SCRIPT_DIR/style.sh" 2>/dev/null || true
@@ -86,9 +88,17 @@ fi
 if [ -f "$OPENCODE_FOCUS_SCRIPT" ]; then
     list_item "Remove" "$OPENCODE_FOCUS_SCRIPT"
 fi
+if [ -f "$OPENCODE_PLUGIN_FILE" ]; then
+    list_item "Remove" "$OPENCODE_PLUGIN_FILE"
+fi
 if [ -f "$OPENCODE_SETTINGS_FILE" ] && command -v jq &> /dev/null; then
-    if jq -e '.hooks.Stop' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
-        list_item "Remove" "hooks from opencode settings.json"
+    if jq -e '.hooks.Stop // .hooks.PermissionRequest' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
+        list_item "Remove" "legacy hooks from ~/.opencode/settings.json"
+    fi
+fi
+if [ -f "$OPENCODE_CONFIG_SETTINGS" ] && command -v jq &> /dev/null; then
+    if jq -e '.hooks.Stop // .hooks.PermissionRequest' "$OPENCODE_CONFIG_SETTINGS" > /dev/null 2>&1; then
+        list_item "Remove" "legacy hooks from ~/.config/opencode/settings.json"
     fi
 fi
 
@@ -246,41 +256,40 @@ else
     dim "opencode focus-window.sh not found (already removed?)"
 fi
 
-# Remove hooks from opencode settings.json
-if [ -f "$OPENCODE_SETTINGS_FILE" ]; then
-    if command -v jq &> /dev/null; then
-        # Backup before modifying
+# Remove OpenCode plugin
+if [ -f "$OPENCODE_PLUGIN_FILE" ]; then
+    rm "$OPENCODE_PLUGIN_FILE"
+    success "Removed $OPENCODE_PLUGIN_FILE"
+else
+    dim "opencode plugin not found (already removed?)"
+fi
+
+# Clean up legacy hooks from ~/.opencode/settings.json
+if [ -f "$OPENCODE_SETTINGS_FILE" ] && command -v jq &> /dev/null; then
+    if jq -e '.hooks.Stop // .hooks.PermissionRequest' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
         cp "$OPENCODE_SETTINGS_FILE" "$OPENCODE_SETTINGS_FILE.backup"
-
-        # Remove Stop hook
-        if jq -e '.hooks.Stop' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
-            jq 'del(.hooks.Stop)' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
-            mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
-            success "Removed Stop hook from opencode settings.json"
-        else
-            dim "No Stop hook found in opencode settings.json"
-        fi
-
-        # Remove PermissionRequest hook
-        if jq -e '.hooks.PermissionRequest' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
-            jq 'del(.hooks.PermissionRequest)' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
-            mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
-            success "Removed PermissionRequest hook from opencode settings.json"
-        else
-            dim "No PermissionRequest hook found in opencode settings.json"
-        fi
-
-        # Clean up empty hooks object if needed
+        jq 'del(.hooks.Stop) | del(.hooks.PermissionRequest)' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
+        mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
         if jq -e '.hooks == {}' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
             jq 'del(.hooks)' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
             mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
         fi
-    else
-        warn "jq not installed, cannot automatically remove hooks from opencode settings.json"
-        dim "Please manually remove the Stop and PermissionRequest hooks from $OPENCODE_SETTINGS_FILE"
+        success "Removed legacy hooks from ~/.opencode/settings.json"
     fi
-else
-    dim "opencode settings.json not found"
+fi
+
+# Clean up legacy hooks from ~/.config/opencode/settings.json
+if [ -f "$OPENCODE_CONFIG_SETTINGS" ] && command -v jq &> /dev/null; then
+    if jq -e '.hooks.Stop // .hooks.PermissionRequest' "$OPENCODE_CONFIG_SETTINGS" > /dev/null 2>&1; then
+        cp "$OPENCODE_CONFIG_SETTINGS" "$OPENCODE_CONFIG_SETTINGS.backup"
+        jq 'del(.hooks.Stop) | del(.hooks.PermissionRequest)' "$OPENCODE_CONFIG_SETTINGS" > "$OPENCODE_CONFIG_SETTINGS.tmp"
+        mv "$OPENCODE_CONFIG_SETTINGS.tmp" "$OPENCODE_CONFIG_SETTINGS"
+        if jq -e '.hooks == {}' "$OPENCODE_CONFIG_SETTINGS" > /dev/null 2>&1; then
+            jq 'del(.hooks)' "$OPENCODE_CONFIG_SETTINGS" > "$OPENCODE_CONFIG_SETTINGS.tmp"
+            mv "$OPENCODE_CONFIG_SETTINGS.tmp" "$OPENCODE_CONFIG_SETTINGS"
+        fi
+        success "Removed legacy hooks from ~/.config/opencode/settings.json"
+    fi
 fi
 
 # === Remove Sandbox Support (if installed) ===

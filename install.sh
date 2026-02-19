@@ -222,71 +222,46 @@ install_opencode_support() {
     cp "$SCRIPT_DIR/focus-window.sh" "$OPENCODE_FOCUS_SCRIPT"
     chmod +x "$OPENCODE_FOCUS_SCRIPT"
 
-    # Configure settings.json
-    step "Configuring opencode hooks..."
+    # Install OpenCode plugin
+    OPENCODE_PLUGIN_DIR="$HOME/.config/opencode/plugins"
+    OPENCODE_PLUGIN_FILE="$OPENCODE_PLUGIN_DIR/claudepong.ts"
+    step "Installing OpenCode plugin..."
+    mkdir -p "$OPENCODE_PLUGIN_DIR"
+    cp "$SCRIPT_DIR/opencode-plugin.ts" "$OPENCODE_PLUGIN_FILE"
+    success "Installed OpenCode plugin to $OPENCODE_PLUGIN_FILE"
 
-    # Stop hook - fires when OpenCode finishes a task
-    OPENCODE_STOP_HOOK_CONFIG='{
-      "matcher": "",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "'"$OPENCODE_NOTIFY_SCRIPT"' '\''Ready for input'\''"
-        }
-      ]
-    }'
-
-    # PermissionRequest hook - fires when permission dialog is shown
-    OPENCODE_PERMISSION_HOOK_CONFIG='{
-      "matcher": "",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "'"$OPENCODE_NOTIFY_SCRIPT"' '\''Permission required'\''"
-        }
-      ]
-    }'
-
-    if [ -f "$OPENCODE_SETTINGS_FILE" ]; then
-        # Backup existing settings
-        cp "$OPENCODE_SETTINGS_FILE" "$OPENCODE_SETTINGS_FILE.backup"
-        dim "Backed up existing settings to $OPENCODE_SETTINGS_FILE.backup"
-
-        # Check if Stop hook already exists
-        if jq -e '.hooks.Stop' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
-            warn "Stop hook already exists in opencode settings.json"
-            confirm "Replace existing Stop hook?"
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                jq --argjson hook "[$OPENCODE_STOP_HOOK_CONFIG]" '.hooks.Stop = $hook' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
-                mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
-            else
-                info "Keeping existing Stop hook."
-            fi
-        else
-            jq --argjson hook "[$OPENCODE_STOP_HOOK_CONFIG]" '.hooks.Stop = $hook' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
+    # Clean up legacy broken hooks from ~/.opencode/settings.json
+    OPENCODE_CONFIG_SETTINGS="$HOME/.config/opencode/settings.json"
+    if [ -f "$OPENCODE_SETTINGS_FILE" ] && command -v jq &> /dev/null; then
+        if jq -e '.hooks.Stop // .hooks.PermissionRequest' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
+            dim "Cleaning up legacy hooks from $OPENCODE_SETTINGS_FILE..."
+            cp "$OPENCODE_SETTINGS_FILE" "$OPENCODE_SETTINGS_FILE.backup"
+            jq 'del(.hooks.Stop) | del(.hooks.PermissionRequest)' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
             mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
-        fi
-
-        # Check if PermissionRequest hook already exists
-        if jq -e '.hooks.PermissionRequest' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
-            warn "PermissionRequest hook already exists in opencode settings.json"
-            confirm "Replace existing PermissionRequest hook?"
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                jq --argjson hook "[$OPENCODE_PERMISSION_HOOK_CONFIG]" '.hooks.PermissionRequest = $hook' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
+            if jq -e '.hooks == {}' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
+                jq 'del(.hooks)' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
                 mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
-            else
-                info "Keeping existing PermissionRequest hook."
             fi
-        else
-            jq --argjson hook "[$OPENCODE_PERMISSION_HOOK_CONFIG]" '.hooks.PermissionRequest = $hook' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
-            mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
+            success "Removed legacy hooks from $OPENCODE_SETTINGS_FILE"
         fi
-    else
-        # Create new settings.json with both hooks
-        echo "{\"hooks\":{\"Stop\":[$OPENCODE_STOP_HOOK_CONFIG],\"PermissionRequest\":[$OPENCODE_PERMISSION_HOOK_CONFIG]}}" | jq '.' > "$OPENCODE_SETTINGS_FILE"
     fi
 
-    success "Configured opencode hooks"
+    # Clean up legacy broken hooks from ~/.config/opencode/settings.json
+    if [ -f "$OPENCODE_CONFIG_SETTINGS" ] && command -v jq &> /dev/null; then
+        if jq -e '.hooks.Stop // .hooks.PermissionRequest' "$OPENCODE_CONFIG_SETTINGS" > /dev/null 2>&1; then
+            dim "Cleaning up legacy hooks from $OPENCODE_CONFIG_SETTINGS..."
+            cp "$OPENCODE_CONFIG_SETTINGS" "$OPENCODE_CONFIG_SETTINGS.backup"
+            jq 'del(.hooks.Stop) | del(.hooks.PermissionRequest)' "$OPENCODE_CONFIG_SETTINGS" > "$OPENCODE_CONFIG_SETTINGS.tmp"
+            mv "$OPENCODE_CONFIG_SETTINGS.tmp" "$OPENCODE_CONFIG_SETTINGS"
+            if jq -e '.hooks == {}' "$OPENCODE_CONFIG_SETTINGS" > /dev/null 2>&1; then
+                jq 'del(.hooks)' "$OPENCODE_CONFIG_SETTINGS" > "$OPENCODE_CONFIG_SETTINGS.tmp"
+                mv "$OPENCODE_CONFIG_SETTINGS.tmp" "$OPENCODE_CONFIG_SETTINGS"
+            fi
+            success "Removed legacy hooks from $OPENCODE_CONFIG_SETTINGS"
+        fi
+    fi
+
+    success "Configured OpenCode plugin"
     banner "opencode support installed!"
 
     info "OpenCode notifications will appear with workspace names."
