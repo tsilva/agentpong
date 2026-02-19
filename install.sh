@@ -89,22 +89,10 @@ step "Installing style.sh..."
 cp "$SCRIPT_DIR/style.sh" "$STYLE_SCRIPT"
 chmod +x "$STYLE_SCRIPT"
 
-# Install focus-window.sh (with conflict handling for aerospace-setup symlink)
+# Install focus-window.sh
 step "Installing focus-window.sh..."
-if [ -L "$FOCUS_SCRIPT_DST" ]; then
-    # Existing symlink from aerospace-setup
-    warn "~/.claude/focus-window.sh is a symlink (likely from aerospace-setup)"
-    confirm "Replace symlink with bundled copy?"
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        rm "$FOCUS_SCRIPT_DST"
-        cp "$FOCUS_SCRIPT_SRC" "$FOCUS_SCRIPT_DST"
-        chmod +x "$FOCUS_SCRIPT_DST"
-        success "Replaced symlink with bundled focus-window.sh"
-    else
-        info "Keeping existing symlink"
-    fi
-elif [ -f "$FOCUS_SCRIPT_DST" ]; then
-    # Regular file from previous claudepong install
+if [ -f "$FOCUS_SCRIPT_DST" ]; then
+    # Update existing file
     cp "$FOCUS_SCRIPT_SRC" "$FOCUS_SCRIPT_DST"
     chmod +x "$FOCUS_SCRIPT_DST"
     success "Updated focus-window.sh"
