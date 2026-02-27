@@ -12,8 +12,6 @@ agentpong is a macOS notification system that alerts users when Claude Code or O
 - **OpenCode** - Full support via TypeScript plugin (`session.idle` and `permission.asked` events)
 - **claude-sandbox** - Full support via TCP listener (port 19223)
 
-## Architecture
-
 ## Directory Structure
 
 ```
@@ -100,3 +98,7 @@ Test installation/uninstallation by checking:
 - `~/.claude/focus-window.sh` exists and is executable
 - `~/.claude/settings.json` contains the `Stop` and `PermissionRequest` hooks
 - `aerospace list-windows` works (if AeroSpace installed)
+
+## Development Guidelines
+
+- Keep `README.md` up to date with any significant project changes
