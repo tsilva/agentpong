@@ -16,6 +16,8 @@ STYLE_SCRIPT="$CLAUDE_DIR/style.sh"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 FOCUS_SCRIPT_SRC="$SRC_DIR/focus-window.sh"
 FOCUS_SCRIPT_DST="$CLAUDE_DIR/focus-window.sh"
+PONG_SCRIPT_SRC="$SRC_DIR/pong.sh"
+PONG_SCRIPT_DST="$CLAUDE_DIR/pong.sh"
 
 # Sandbox support paths
 SANDBOX_DIR="$HOME/.claude-sandbox"
@@ -107,6 +109,18 @@ else
     success "Installed focus-window.sh"
 fi
 
+# Install pong.sh (notification cycling)
+step "Installing pong.sh..."
+if [ -f "$PONG_SCRIPT_DST" ]; then
+    cp "$PONG_SCRIPT_SRC" "$PONG_SCRIPT_DST"
+    chmod +x "$PONG_SCRIPT_DST"
+    success "Updated pong.sh"
+else
+    cp "$PONG_SCRIPT_SRC" "$PONG_SCRIPT_DST"
+    chmod +x "$PONG_SCRIPT_DST"
+    success "Installed pong.sh"
+fi
+
 # Configure settings.json
 step "Configuring Claude Code hooks..."
 
@@ -196,6 +210,13 @@ dim "       Regex: ^[[:space:]]*>"
 dim "       Action: Run Command..."
 dim "       Parameters: $NOTIFY_SCRIPT \"Ready for input\""
 dim "       Check: Instant"
+echo ""
+info "Notification cycling: Bind pong.sh to a shortcut to cycle through pending notifications."
+dim "  AeroSpace: Add to ~/.aerospace.toml:"
+dim "    alt-p = 'exec-and-forget ~/.claude/pong.sh'"
+dim "  skhd: Add to ~/.skhdrc:"
+dim "    alt - p : ~/.claude/pong.sh"
+dim "  Raycast/macOS Shortcuts: Run Shell Script -> ~/.claude/pong.sh"
 
 # === opencode Integration (Optional) ===
 install_opencode_support() {
@@ -225,6 +246,11 @@ install_opencode_support() {
     step "Installing focus-window.sh to opencode directory..."
     cp "$SRC_DIR/focus-window.sh" "$OPENCODE_FOCUS_SCRIPT"
     chmod +x "$OPENCODE_FOCUS_SCRIPT"
+
+    # Copy pong.sh
+    step "Installing pong.sh to opencode directory..."
+    cp "$SRC_DIR/pong.sh" "$OPENCODE_DIR/pong.sh"
+    chmod +x "$OPENCODE_DIR/pong.sh"
 
     # Install OpenCode plugin
     OPENCODE_PLUGIN_DIR="$HOME/.config/opencode/plugins"

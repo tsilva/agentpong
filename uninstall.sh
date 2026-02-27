@@ -11,6 +11,7 @@ CLAUDE_DIR="$HOME/.claude"
 NOTIFY_SCRIPT="$CLAUDE_DIR/notify.sh"
 STYLE_SCRIPT="$CLAUDE_DIR/style.sh"
 FOCUS_SCRIPT="$CLAUDE_DIR/focus-window.sh"
+PONG_SCRIPT="$CLAUDE_DIR/pong.sh"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 HAMMERSPOON_DIR="$HOME/.hammerspoon"
 HAMMERSPOON_INIT="$HAMMERSPOON_DIR/init.lua"
@@ -29,6 +30,7 @@ OPENCODE_DIR="$HOME/.opencode"
 OPENCODE_NOTIFY_SCRIPT="$OPENCODE_DIR/notify.sh"
 OPENCODE_STYLE_SCRIPT="$OPENCODE_DIR/style.sh"
 OPENCODE_FOCUS_SCRIPT="$OPENCODE_DIR/focus-window.sh"
+OPENCODE_PONG_SCRIPT="$OPENCODE_DIR/pong.sh"
 OPENCODE_SETTINGS_FILE="$OPENCODE_DIR/settings.json"
 OPENCODE_PLUGIN_FILE="$HOME/.config/opencode/plugins/agentpong.ts"
 OPENCODE_CONFIG_SETTINGS="$HOME/.config/opencode/settings.json"
@@ -54,6 +56,11 @@ fi
 # Check focus-window.sh
 if [ -f "$FOCUS_SCRIPT" ]; then
     list_item "Remove" "$FOCUS_SCRIPT"
+fi
+
+# Check pong.sh
+if [ -f "$PONG_SCRIPT" ]; then
+    list_item "Remove" "$PONG_SCRIPT"
 fi
 
 # Check settings.json hooks
@@ -88,6 +95,9 @@ if [ -f "$OPENCODE_STYLE_SCRIPT" ]; then
 fi
 if [ -f "$OPENCODE_FOCUS_SCRIPT" ]; then
     list_item "Remove" "$OPENCODE_FOCUS_SCRIPT"
+fi
+if [ -f "$OPENCODE_PONG_SCRIPT" ]; then
+    list_item "Remove" "$OPENCODE_PONG_SCRIPT"
 fi
 if [ -f "$OPENCODE_PLUGIN_FILE" ]; then
     list_item "Remove" "$OPENCODE_PLUGIN_FILE"
@@ -152,6 +162,14 @@ if [ -f "$FOCUS_SCRIPT" ]; then
     success "Removed $FOCUS_SCRIPT"
 else
     dim "focus-window.sh not found (already removed?)"
+fi
+
+# Remove pong.sh
+if [ -f "$PONG_SCRIPT" ]; then
+    rm "$PONG_SCRIPT"
+    success "Removed $PONG_SCRIPT"
+else
+    dim "pong.sh not found (already removed?)"
 fi
 
 # Remove hooks from settings.json
@@ -255,6 +273,14 @@ if [ -f "$OPENCODE_FOCUS_SCRIPT" ]; then
     success "Removed $OPENCODE_FOCUS_SCRIPT"
 else
     dim "opencode focus-window.sh not found (already removed?)"
+fi
+
+# Remove opencode pong.sh
+if [ -f "$OPENCODE_PONG_SCRIPT" ]; then
+    rm "$OPENCODE_PONG_SCRIPT"
+    success "Removed $OPENCODE_PONG_SCRIPT"
+else
+    dim "opencode pong.sh not found (already removed?)"
 fi
 
 # Remove OpenCode plugin
