@@ -185,6 +185,10 @@ else
     echo "{\"hooks\":{\"Stop\":[$STOP_HOOK_CONFIG],\"PermissionRequest\":[$PERMISSION_HOOK_CONFIG]}}" | jq '.' > "$SETTINGS_FILE"
 fi
 
+# Restart terminal-notifier (kill lingering processes so next notification starts fresh)
+step "Restarting terminal-notifier..."
+killall terminal-notifier 2>/dev/null && success "Restarted terminal-notifier" || dim "No running terminal-notifier processes"
+
 banner "Installation complete!"
 
 info "Features enabled:"
@@ -212,10 +216,9 @@ dim "       Parameters: $NOTIFY_SCRIPT \"Ready for input\""
 dim "       Check: Instant"
 echo ""
 info "Notification cycling: Bind pong.sh to a shortcut to cycle through pending notifications."
-dim "  AeroSpace: Add to ~/.aerospace.toml:"
-dim "    alt-p = 'exec-and-forget ~/.claude/pong.sh'"
+dim "  AeroSpace (via aerospace-setup): alt+n is auto-detected during install"
 dim "  skhd: Add to ~/.skhdrc:"
-dim "    alt - p : ~/.claude/pong.sh"
+dim "    alt - n : ~/.claude/pong.sh"
 dim "  Raycast/macOS Shortcuts: Run Shell Script -> ~/.claude/pong.sh"
 
 # === opencode Integration (Optional) ===
