@@ -144,7 +144,14 @@ main() {
     
     # Source styling library
     source "$SRC_DIR/style.sh" 2>/dev/null || true
-    
+
+    # Re-register cleanup trap (style.sh overwrites with its own)
+    _uninstall_cleanup() {
+        type style_cleanup &>/dev/null && style_cleanup
+        printf "\033[?25h\033[0m" 2>/dev/null
+    }
+    trap _uninstall_cleanup EXIT INT TERM HUP QUIT
+
     # Pong intro + tagline
     ring_bell
     pong_intro ""
