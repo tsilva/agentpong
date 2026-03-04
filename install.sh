@@ -722,13 +722,13 @@ install_sandbox_support() {
 }
 
 echo ""
-confirm "Do you use opencode? Enable opencode notification support?"
+confirm "Do you use OpenCode (the open-source AI coding assistant)? This will send notifications when OpenCode is ready for input."
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     install_opencode_support
 fi
 
 echo ""
-confirm "Do you use claude-sandbox? Enable sandbox notification support?"
+confirm "Do you use claude-sandbox (containerized Claude Code for isolated development)? This enables notifications from sandboxed sessions."
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     install_sandbox_support
 fi
