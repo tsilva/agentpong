@@ -1,9 +1,105 @@
 #!/bin/bash
 #
-# agentpong - Uninstallation Script
+# agentpong - Kickass Uninstallation Script v2.0.0
+#
+# Usage:
+#   ./uninstall.sh [flags]
+#
+# Flags:
+#   --dry-run    Preview what would be removed
+#   --force, -f  Skip confirmation prompts
+#   --quiet, -q  Minimal output
+#   --help, -h   Show help
 #
 
 set -e
+
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+UNINSTALL_VERSION="2.0.0"
+INSTALL_LOG=""
+DRY_RUN=false
+FORCE_MODE=false
+QUIET_MODE=false
+
+# =============================================================================
+# ARGUMENT PARSING
+# =============================================================================
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --dry-run)
+                DRY_RUN=true
+                shift
+                ;;
+            --force|-f)
+                FORCE_MODE=true
+                shift
+                ;;
+            --quiet|-q)
+                QUIET_MODE=true
+                export STYLE_VERBOSE=0
+                shift
+                ;;
+            --help|-h)
+                show_help
+                exit 0
+                ;;
+            *)
+                echo "Unknown option: $1" >&2
+                exit 1
+                ;;
+        esac
+    done
+}
+
+show_help() {
+    cat << 'EOF'
+agentpong Uninstaller
+
+USAGE:
+    ./uninstall.sh [FLAGS]
+
+FLAGS:
+    --dry-run      Preview what would be removed
+    --force, -f    Skip confirmation prompts
+    --quiet, -q    Minimal output
+    --help, -h     Show this help
+
+EOF
+}
+
+# =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
+
+log() {
+    local level="$1" message="$2"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    if [[ -n "$INSTALL_LOG" ]]; then
+        echo "[$timestamp] [$level] $message" >> "$INSTALL_LOG"
+    fi
+}
+
+dry_aware_remove() {
+    local file="$1" desc="$2"
+    if [[ "$DRY_RUN" == true ]]; then
+        dim "[DRY-RUN] Would remove: $desc"
+        log "DRY-RUN" "Would remove $file"
+    else
+        if [[ -f "$file" ]]; then
+            rm "$file"
+            log "INFO" "Removed $file"
+        fi
+    fi
+}
+
+# =============================================================================
+# PATHS
+# =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC_DIR="$SCRIPT_DIR/src"
@@ -13,11 +109,8 @@ STYLE_SCRIPT="$CLAUDE_DIR/style.sh"
 FOCUS_SCRIPT="$CLAUDE_DIR/focus-window.sh"
 PONG_SCRIPT="$CLAUDE_DIR/pong.sh"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
-HAMMERSPOON_DIR="$HOME/.hammerspoon"
-HAMMERSPOON_INIT="$HAMMERSPOON_DIR/init.lua"
-HAMMERSPOON_MODULE="$HAMMERSPOON_DIR/claude-notify.lua"
 
-# Sandbox support paths
+# Sandbox paths
 SANDBOX_DIR="$HOME/.claude-sandbox"
 SANDBOX_CONFIG_DIR="$SANDBOX_DIR/claude-config"
 SANDBOX_NOTIFY_SCRIPT="$SANDBOX_CONFIG_DIR/notify.sh"
@@ -25,7 +118,7 @@ SANDBOX_SETTINGS_FILE="$SANDBOX_CONFIG_DIR/settings.json"
 SANDBOX_HANDLER="$CLAUDE_DIR/notify-handler.sh"
 SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.agentpong.sandbox.plist"
 
-# OpenCode support paths
+# OpenCode paths
 OPENCODE_DIR="$HOME/.opencode"
 OPENCODE_NOTIFY_SCRIPT="$OPENCODE_DIR/notify.sh"
 OPENCODE_STYLE_SCRIPT="$OPENCODE_DIR/style.sh"
@@ -35,345 +128,197 @@ OPENCODE_SETTINGS_FILE="$OPENCODE_DIR/settings.json"
 OPENCODE_PLUGIN_FILE="$HOME/.config/opencode/plugins/agentpong.ts"
 OPENCODE_CONFIG_SETTINGS="$HOME/.config/opencode/settings.json"
 
-# Source styling library (graceful fallback to plain echo)
-source "$SRC_DIR/style.sh" 2>/dev/null || true
+# Legacy paths
+HAMMERSPOON_DIR="$HOME/.hammerspoon"
+HAMMERSPOON_INIT="$HAMMERSPOON_DIR/init.lua"
+HAMMERSPOON_MODULE="$HAMMERSPOON_DIR/claude-notify.lua"
 
-header "agentpong" "Uninstaller"
+# =============================================================================
+# MAIN UNINSTALL
+# =============================================================================
 
-# === Preview what will be done ===
-section "Actions to perform"
-
-# Check notify.sh
-if [ -f "$NOTIFY_SCRIPT" ]; then
-    list_item "Remove" "$NOTIFY_SCRIPT"
-fi
-
-# Check style.sh
-if [ -f "$STYLE_SCRIPT" ]; then
-    list_item "Remove" "$STYLE_SCRIPT"
-fi
-
-# Check focus-window.sh
-if [ -f "$FOCUS_SCRIPT" ]; then
-    list_item "Remove" "$FOCUS_SCRIPT"
-fi
-
-# Check pong.sh
-if [ -f "$PONG_SCRIPT" ]; then
-    list_item "Remove" "$PONG_SCRIPT"
-fi
-
-# Check settings.json hooks
-if [ -f "$SETTINGS_FILE" ] && command -v jq &> /dev/null; then
-    if jq -e '.hooks.Stop' "$SETTINGS_FILE" > /dev/null 2>&1; then
-        list_item "Remove" "Stop hook from settings.json"
+main() {
+    parse_args "$@"
+    
+    # Initialize log
+    INSTALL_LOG="${TMPDIR:-/tmp}/agentpong-uninstall-$(date +%Y%m%d-%H%M%S).log"
+    touch "$INSTALL_LOG"
+    log "INFO" "agentpong uninstaller v$UNINSTALL_VERSION started"
+    
+    # Source styling library
+    source "$SRC_DIR/style.sh" 2>/dev/null || true
+    
+    header "agentpong" "Uninstaller v${UNINSTALL_VERSION}"
+    
+    if [[ "$DRY_RUN" == true ]]; then
+        info "Dry-run mode: no changes will be made"
     fi
-    if jq -e '.hooks.PermissionRequest' "$SETTINGS_FILE" > /dev/null 2>&1; then
-        list_item "Remove" "PermissionRequest hook from settings.json"
+
+    # === Preview what will be done ===
+    section "Actions to perform"
+
+    local items_to_remove=()
+    local hooks_to_remove=()
+    local will_unload_launchd=false
+
+    # Check core files
+    if [[ -f "$NOTIFY_SCRIPT" ]]; then
+        list_item "Remove" "$NOTIFY_SCRIPT"
+        items_to_remove+=("$NOTIFY_SCRIPT")
     fi
-    if jq -e '.hooks.Notification' "$SETTINGS_FILE" > /dev/null 2>&1; then
-        list_item "Remove" "legacy Notification hook from settings.json"
+
+    if [[ -f "$STYLE_SCRIPT" ]]; then
+        list_item "Remove" "$STYLE_SCRIPT"
+        items_to_remove+=("$STYLE_SCRIPT")
     fi
-elif [ -f "$SETTINGS_FILE" ]; then
-    warn "jq not installed, cannot check/remove hooks automatically"
-fi
 
-# Check legacy Hammerspoon
-if [ -f "$HAMMERSPOON_MODULE" ]; then
-    list_item "Remove" "$HAMMERSPOON_MODULE"
-fi
-if [ -f "$HAMMERSPOON_INIT" ] && grep -q 'require("claude-notify")' "$HAMMERSPOON_INIT" 2>/dev/null; then
-    list_item "Remove" "claude-notify from Hammerspoon config"
-fi
-
-# Check opencode support
-if [ -f "$OPENCODE_NOTIFY_SCRIPT" ]; then
-    list_item "Remove" "$OPENCODE_NOTIFY_SCRIPT"
-fi
-if [ -f "$OPENCODE_STYLE_SCRIPT" ]; then
-    list_item "Remove" "$OPENCODE_STYLE_SCRIPT"
-fi
-if [ -f "$OPENCODE_FOCUS_SCRIPT" ]; then
-    list_item "Remove" "$OPENCODE_FOCUS_SCRIPT"
-fi
-if [ -f "$OPENCODE_PONG_SCRIPT" ]; then
-    list_item "Remove" "$OPENCODE_PONG_SCRIPT"
-fi
-if [ -f "$OPENCODE_PLUGIN_FILE" ]; then
-    list_item "Remove" "$OPENCODE_PLUGIN_FILE"
-fi
-if [ -f "$OPENCODE_SETTINGS_FILE" ] && command -v jq &> /dev/null; then
-    if jq -e '.hooks.Stop // .hooks.PermissionRequest' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
-        list_item "Remove" "legacy hooks from ~/.opencode/settings.json"
+    if [[ -f "$FOCUS_SCRIPT" ]]; then
+        list_item "Remove" "$FOCUS_SCRIPT"
+        items_to_remove+=("$FOCUS_SCRIPT")
     fi
-fi
-if [ -f "$OPENCODE_CONFIG_SETTINGS" ] && command -v jq &> /dev/null; then
-    if jq -e '.hooks.Stop // .hooks.PermissionRequest' "$OPENCODE_CONFIG_SETTINGS" > /dev/null 2>&1; then
-        list_item "Remove" "legacy hooks from ~/.config/opencode/settings.json"
+
+    if [[ -f "$PONG_SCRIPT" ]]; then
+        list_item "Remove" "$PONG_SCRIPT"
+        items_to_remove+=("$PONG_SCRIPT")
     fi
-fi
 
-# Check sandbox support
-if [ -f "$SANDBOX_PLIST" ]; then
-    list_item "Remove" "launchd service"
-fi
-if [ -f "$SANDBOX_HANDLER" ]; then
-    list_item "Remove" "$SANDBOX_HANDLER"
-fi
-if [ -f "$SANDBOX_NOTIFY_SCRIPT" ]; then
-    list_item "Remove" "$SANDBOX_NOTIFY_SCRIPT"
-fi
-if [ -f "$SANDBOX_SETTINGS_FILE" ] && command -v jq &> /dev/null; then
-    if jq -e '.hooks.Stop' "$SANDBOX_SETTINGS_FILE" > /dev/null 2>&1; then
-        list_item "Remove" "hooks from sandbox settings.json"
-    fi
-fi
-
-echo ""
-confirm "Proceed with uninstallation?"
-
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    info "Uninstallation cancelled."
-    exit 0
-fi
-
-# === Remove Claude Code Integration ===
-section "Removing Claude Code integration"
-
-# Remove notify.sh
-if [ -f "$NOTIFY_SCRIPT" ]; then
-    rm "$NOTIFY_SCRIPT"
-    success "Removed $NOTIFY_SCRIPT"
-else
-    dim "notify.sh not found (already removed?)"
-fi
-
-# Remove style.sh
-if [ -f "$STYLE_SCRIPT" ]; then
-    rm "$STYLE_SCRIPT"
-    success "Removed $STYLE_SCRIPT"
-else
-    dim "style.sh not found (already removed?)"
-fi
-
-# Remove focus-window.sh
-if [ -f "$FOCUS_SCRIPT" ]; then
-    rm "$FOCUS_SCRIPT"
-    success "Removed $FOCUS_SCRIPT"
-else
-    dim "focus-window.sh not found (already removed?)"
-fi
-
-# Remove pong.sh
-if [ -f "$PONG_SCRIPT" ]; then
-    rm "$PONG_SCRIPT"
-    success "Removed $PONG_SCRIPT"
-else
-    dim "pong.sh not found (already removed?)"
-fi
-
-# Remove hooks from settings.json
-if [ -f "$SETTINGS_FILE" ]; then
-    if command -v jq &> /dev/null; then
-        # Backup before modifying
-        cp "$SETTINGS_FILE" "$SETTINGS_FILE.backup"
-
-        # Remove Stop hook
+    # Check settings.json hooks
+    if [[ -f "$SETTINGS_FILE" ]] && command -v jq &> /dev/null; then
         if jq -e '.hooks.Stop' "$SETTINGS_FILE" > /dev/null 2>&1; then
-            jq 'del(.hooks.Stop)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
-            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            success "Removed Stop hook from settings.json"
-        else
-            dim "No Stop hook found in settings.json"
+            list_item "Remove" "Stop hook from settings.json"
+            hooks_to_remove+=("Stop")
         fi
-
-        # Remove PermissionRequest hook
         if jq -e '.hooks.PermissionRequest' "$SETTINGS_FILE" > /dev/null 2>&1; then
-            jq 'del(.hooks.PermissionRequest)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
-            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            success "Removed PermissionRequest hook from settings.json"
-        else
-            dim "No PermissionRequest hook found in settings.json"
+            list_item "Remove" "PermissionRequest hook from settings.json"
+            hooks_to_remove+=("PermissionRequest")
+        fi
+    elif [[ -f "$SETTINGS_FILE" ]]; then
+        warn "jq not installed, cannot check/remove hooks automatically"
+    fi
+
+    # Check sandbox
+    if [[ -f "$SANDBOX_PLIST" ]]; then
+        list_item "Unload & Remove" "launchd service"
+        will_unload_launchd=true
+    fi
+    if [[ -f "$SANDBOX_HANDLER" ]]; then
+        list_item "Remove" "$SANDBOX_HANDLER"
+        items_to_remove+=("$SANDBOX_HANDLER")
+    fi
+    if [[ -f "$SANDBOX_NOTIFY_SCRIPT" ]]; then
+        list_item "Remove" "$SANDBOX_NOTIFY_SCRIPT"
+        items_to_remove+=("$SANDBOX_NOTIFY_SCRIPT")
+    fi
+
+    # Check OpenCode
+    if [[ -f "$OPENCODE_NOTIFY_SCRIPT" ]]; then
+        list_item "Remove" "$OPENCODE_NOTIFY_SCRIPT"
+        items_to_remove+=("$OPENCODE_NOTIFY_SCRIPT")
+    fi
+    if [[ -f "$OPENCODE_STYLE_SCRIPT" ]]; then
+        list_item "Remove" "$OPENCODE_STYLE_SCRIPT"
+        items_to_remove+=("$OPENCODE_STYLE_SCRIPT")
+    fi
+    if [[ -f "$OPENCODE_FOCUS_SCRIPT" ]]; then
+        list_item "Remove" "$OPENCODE_FOCUS_SCRIPT"
+        items_to_remove+=("$OPENCODE_FOCUS_SCRIPT")
+    fi
+    if [[ -f "$OPENCODE_PONG_SCRIPT" ]]; then
+        list_item "Remove" "$OPENCODE_PONG_SCRIPT"
+        items_to_remove+=("$OPENCODE_PONG_SCRIPT")
+    fi
+    if [[ -f "$OPENCODE_PLUGIN_FILE" ]]; then
+        list_item "Remove" "OpenCode plugin"
+        items_to_remove+=("$OPENCODE_PLUGIN_FILE")
+    fi
+
+    # Check legacy Hammerspoon
+    if [[ -f "$HAMMERSPOON_MODULE" ]]; then
+        list_item "Remove" "$HAMMERSPOON_MODULE"
+        items_to_remove+=("$HAMMERSPOON_MODULE")
+    fi
+
+    # Validate there's something to remove
+    if [[ ${#items_to_remove[@]} -eq 0 && ${#hooks_to_remove[@]} -eq 0 && "$will_unload_launchd" == false ]]; then
+        info "Nothing to uninstall - agentpong doesn't appear to be installed"
+        exit 0
+    fi
+
+    # Confirmation
+    if [[ "$DRY_RUN" == true ]]; then
+        echo ""
+        info "Dry-run complete. No changes were made."
+        exit 0
+    fi
+
+    if [[ "$FORCE_MODE" != true && "$QUIET_MODE" != true ]]; then
+        echo ""
+        confirm "Proceed with uninstallation?"
+
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            info "Uninstallation cancelled."
+            exit 0
+        fi
+    fi
+
+    # === Execute removal ===
+    section "Removing files..."
+
+    # Remove core files
+    for file in "${items_to_remove[@]}"; do
+        if [[ -f "$file" ]]; then
+            dry_aware_remove "$file" "$(basename "$file")"
+            success "Removed $(basename "$file")"
+        fi
+    done
+
+    # Remove hooks from settings.json
+    if [[ ${#hooks_to_remove[@]} -gt 0 && -f "$SETTINGS_FILE" ]] && command -v jq &> /dev/null; then
+        step "Cleaning up settings.json..."
+        
+        # Backup before modifying
+        if [[ ! -f "$SETTINGS_FILE.backup.uninstall" ]]; then
+            cp "$SETTINGS_FILE" "$SETTINGS_FILE.backup.uninstall"
         fi
 
-        # Remove legacy Notification hook (if present from older versions)
-        if jq -e '.hooks.Notification' "$SETTINGS_FILE" > /dev/null 2>&1; then
-            jq 'del(.hooks.Notification)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
-            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            success "Removed legacy Notification hook from settings.json"
-        fi
+        local modified=false
+        
+        for hook in "${hooks_to_remove[@]}"; do
+            if jq -e ".hooks.$hook" "$SETTINGS_FILE" > /dev/null 2>&1; then
+                jq "del(.hooks.$hook)" "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
+                mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+                success "Removed $hook hook"
+                modified=true
+            fi
+        done
 
-        # Clean up empty hooks object if needed
-        if jq -e '.hooks == {}' "$SETTINGS_FILE" > /dev/null 2>&1; then
+        # Clean up empty hooks object
+        if [[ "$modified" == true ]] && jq -e '.hooks == {}' "$SETTINGS_FILE" > /dev/null 2>&1; then
             jq 'del(.hooks)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
             mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
         fi
-    else
-        warn "jq not installed, cannot automatically remove hooks from settings.json"
-        dim "Please manually remove the Stop and PermissionRequest hooks from $SETTINGS_FILE"
-    fi
-else
-    dim "settings.json not found"
-fi
-
-# === Remove Legacy Hammerspoon Integration (if present) ===
-section "Cleaning up legacy Hammerspoon integration"
-
-# Remove the Lua module
-if [ -f "$HAMMERSPOON_MODULE" ]; then
-    rm "$HAMMERSPOON_MODULE"
-    success "Removed $HAMMERSPOON_MODULE"
-fi
-
-# Remove require line from init.lua
-if [ -f "$HAMMERSPOON_INIT" ]; then
-    if grep -q 'require("claude-notify")' "$HAMMERSPOON_INIT" 2>/dev/null; then
-        # Create backup
-        cp "$HAMMERSPOON_INIT" "$HAMMERSPOON_INIT.backup"
-
-        # Remove the require line and the comment above it
-        sed -i '' '/^-- Claude Code notifications$/d' "$HAMMERSPOON_INIT"
-        sed -i '' '/require("claude-notify")/d' "$HAMMERSPOON_INIT"
-
-        # Remove any resulting double blank lines
-        sed -i '' '/^$/N;/^\n$/d' "$HAMMERSPOON_INIT"
-
-        success "Removed claude-notify from Hammerspoon config"
-
-        # Reload Hammerspoon config if running
-        if pgrep -x "Hammerspoon" > /dev/null; then
-            step "Reloading Hammerspoon config..."
-            osascript -e 'tell application "Hammerspoon" to execute lua code "hs.reload()"' 2>/dev/null || true
+        
+        if [[ "$modified" == false ]]; then
+            dim "No hooks to remove"
         fi
     fi
-fi
 
-# === Remove OpenCode Support (if installed) ===
-section "Cleaning up opencode support"
-
-# Remove opencode notify.sh
-if [ -f "$OPENCODE_NOTIFY_SCRIPT" ]; then
-    rm "$OPENCODE_NOTIFY_SCRIPT"
-    success "Removed $OPENCODE_NOTIFY_SCRIPT"
-else
-    dim "opencode notify.sh not found (already removed?)"
-fi
-
-# Remove opencode style.sh
-if [ -f "$OPENCODE_STYLE_SCRIPT" ]; then
-    rm "$OPENCODE_STYLE_SCRIPT"
-    success "Removed $OPENCODE_STYLE_SCRIPT"
-else
-    dim "opencode style.sh not found (already removed?)"
-fi
-
-# Remove opencode focus-window.sh
-if [ -f "$OPENCODE_FOCUS_SCRIPT" ]; then
-    rm "$OPENCODE_FOCUS_SCRIPT"
-    success "Removed $OPENCODE_FOCUS_SCRIPT"
-else
-    dim "opencode focus-window.sh not found (already removed?)"
-fi
-
-# Remove opencode pong.sh
-if [ -f "$OPENCODE_PONG_SCRIPT" ]; then
-    rm "$OPENCODE_PONG_SCRIPT"
-    success "Removed $OPENCODE_PONG_SCRIPT"
-else
-    dim "opencode pong.sh not found (already removed?)"
-fi
-
-# Remove OpenCode plugin
-if [ -f "$OPENCODE_PLUGIN_FILE" ]; then
-    rm "$OPENCODE_PLUGIN_FILE"
-    success "Removed $OPENCODE_PLUGIN_FILE"
-else
-    dim "opencode plugin not found (already removed?)"
-fi
-
-# Clean up legacy hooks from ~/.opencode/settings.json
-if [ -f "$OPENCODE_SETTINGS_FILE" ] && command -v jq &> /dev/null; then
-    if jq -e '.hooks.Stop // .hooks.PermissionRequest' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
-        cp "$OPENCODE_SETTINGS_FILE" "$OPENCODE_SETTINGS_FILE.backup"
-        jq 'del(.hooks.Stop) | del(.hooks.PermissionRequest)' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
-        mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
-        if jq -e '.hooks == {}' "$OPENCODE_SETTINGS_FILE" > /dev/null 2>&1; then
-            jq 'del(.hooks)' "$OPENCODE_SETTINGS_FILE" > "$OPENCODE_SETTINGS_FILE.tmp"
-            mv "$OPENCODE_SETTINGS_FILE.tmp" "$OPENCODE_SETTINGS_FILE"
-        fi
-        success "Removed legacy hooks from ~/.opencode/settings.json"
+    # Unload and remove launchd service
+    if [[ "$will_unload_launchd" == true ]]; then
+        step "Unloading launchd service..."
+        launchctl unload "$SANDBOX_PLIST" 2>/dev/null || true
+        dry_aware_remove "$SANDBOX_PLIST" "launchd plist"
+        success "Removed launchd service"
     fi
-fi
 
-# Clean up legacy hooks from ~/.config/opencode/settings.json
-if [ -f "$OPENCODE_CONFIG_SETTINGS" ] && command -v jq &> /dev/null; then
-    if jq -e '.hooks.Stop // .hooks.PermissionRequest' "$OPENCODE_CONFIG_SETTINGS" > /dev/null 2>&1; then
-        cp "$OPENCODE_CONFIG_SETTINGS" "$OPENCODE_CONFIG_SETTINGS.backup"
-        jq 'del(.hooks.Stop) | del(.hooks.PermissionRequest)' "$OPENCODE_CONFIG_SETTINGS" > "$OPENCODE_CONFIG_SETTINGS.tmp"
-        mv "$OPENCODE_CONFIG_SETTINGS.tmp" "$OPENCODE_CONFIG_SETTINGS"
-        if jq -e '.hooks == {}' "$OPENCODE_CONFIG_SETTINGS" > /dev/null 2>&1; then
-            jq 'del(.hooks)' "$OPENCODE_CONFIG_SETTINGS" > "$OPENCODE_CONFIG_SETTINGS.tmp"
-            mv "$OPENCODE_CONFIG_SETTINGS.tmp" "$OPENCODE_CONFIG_SETTINGS"
-        fi
-        success "Removed legacy hooks from ~/.config/opencode/settings.json"
-    fi
-fi
+    banner "Uninstallation complete!"
 
-# === Remove Sandbox Support (if installed) ===
-section "Cleaning up sandbox support"
+    note "terminal-notifier was not removed (you may have other uses for it)."
+    dim "To fully remove it:"
+    dim "  brew uninstall terminal-notifier"
+    
+    log "INFO" "Uninstallation completed successfully"
+}
 
-# Unload and remove launchd service
-if [ -f "$SANDBOX_PLIST" ]; then
-    launchctl unload "$SANDBOX_PLIST" 2>/dev/null || true
-    rm "$SANDBOX_PLIST"
-    success "Removed launchd service"
-fi
-
-# Remove handler script
-if [ -f "$SANDBOX_HANDLER" ]; then
-    rm "$SANDBOX_HANDLER"
-    success "Removed $SANDBOX_HANDLER"
-fi
-
-# Remove sandbox notify script
-if [ -f "$SANDBOX_NOTIFY_SCRIPT" ]; then
-    rm "$SANDBOX_NOTIFY_SCRIPT"
-    success "Removed $SANDBOX_NOTIFY_SCRIPT"
-fi
-
-# Remove hooks from sandbox settings.json
-if [ -f "$SANDBOX_SETTINGS_FILE" ] && command -v jq &> /dev/null; then
-    if jq -e '.hooks.Stop' "$SANDBOX_SETTINGS_FILE" > /dev/null 2>&1 || \
-       jq -e '.hooks.PermissionRequest' "$SANDBOX_SETTINGS_FILE" > /dev/null 2>&1; then
-        cp "$SANDBOX_SETTINGS_FILE" "$SANDBOX_SETTINGS_FILE.backup"
-
-        # Remove Stop hook
-        if jq -e '.hooks.Stop' "$SANDBOX_SETTINGS_FILE" > /dev/null 2>&1; then
-            jq 'del(.hooks.Stop)' "$SANDBOX_SETTINGS_FILE" > "$SANDBOX_SETTINGS_FILE.tmp"
-            mv "$SANDBOX_SETTINGS_FILE.tmp" "$SANDBOX_SETTINGS_FILE"
-        fi
-
-        # Remove PermissionRequest hook
-        if jq -e '.hooks.PermissionRequest' "$SANDBOX_SETTINGS_FILE" > /dev/null 2>&1; then
-            jq 'del(.hooks.PermissionRequest)' "$SANDBOX_SETTINGS_FILE" > "$SANDBOX_SETTINGS_FILE.tmp"
-            mv "$SANDBOX_SETTINGS_FILE.tmp" "$SANDBOX_SETTINGS_FILE"
-        fi
-
-        # Clean up empty hooks object
-        if jq -e '.hooks == {}' "$SANDBOX_SETTINGS_FILE" > /dev/null 2>&1; then
-            jq 'del(.hooks)' "$SANDBOX_SETTINGS_FILE" > "$SANDBOX_SETTINGS_FILE.tmp"
-            mv "$SANDBOX_SETTINGS_FILE.tmp" "$SANDBOX_SETTINGS_FILE"
-        fi
-
-        success "Removed hooks from sandbox settings.json"
-    fi
-fi
-
-banner "Uninstallation complete!"
-
-note "terminal-notifier was not removed (you may have other uses for it)."
-dim "To fully remove it:"
-dim "  brew uninstall terminal-notifier"
-echo ""
-note "If you set up iTerm Triggers, remove them manually:"
-dim "  iTerm > Settings > Profiles > Advanced > Triggers"
+# Run main
+main "$@"
