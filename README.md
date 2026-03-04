@@ -10,8 +10,32 @@
 
   **🏓 Your AI agent pings, you pong back — desktop notifications that jump you to the right window, even across workspaces 🔔**
 
-  [Installation](#-installation) · [Usage](#-usage) · [How It Works](#-how-it-works) · [Troubleshooting](#-troubleshooting)
+  [Quick Start](#-quick-start) · [Installation](#-installation) · [Usage](#-usage) · [How It Works](#-how-it-works) · [Troubleshooting](#-troubleshooting)
 </div>
+
+---
+
+## 🚀 Quick Start
+
+Install with one command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install-remote.sh | bash
+```
+
+The installer will:
+1. Download agentpong from GitHub
+2. Install `terminal-notifier` via Homebrew (if needed)
+3. Copy notification and focus scripts to `~/.claude/`
+4. Configure `Stop` and `PermissionRequest` hooks for Claude Code
+5. Offer to install OpenCode and claude-sandbox support
+
+**Alternative:** Download first to inspect, then run:
+```bash
+curl -fsSL -o install-agentpong.sh https://raw.githubusercontent.com/tsilva/agentpong/main/install-remote.sh
+# Review the script...
+bash install-agentpong.sh
+```
 
 ---
 
@@ -51,18 +75,53 @@
 
 ## 🚀 Installation
 
+### Quick Install (Recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install-remote.sh | bash
+```
+
+The installer will:
+1. Download agentpong from GitHub
+2. Install `terminal-notifier` via Homebrew (if needed)
+3. Copy notification and focus scripts to `~/.claude/`
+4. Configure `Stop` and `PermissionRequest` hooks for Claude Code
+5. Offer to install OpenCode and claude-sandbox support
+
+**Security-conscious?** Download first to inspect:
+```bash
+curl -fsSL -o install-agentpong.sh https://raw.githubusercontent.com/tsilva/agentpong/main/install-remote.sh
+# Review the script...
+bash install-agentpong.sh
+```
+
+### Development / Manual Install
+
+If you prefer to clone the repository or want to modify the code:
+
 ```bash
 git clone https://github.com/tsilva/agentpong.git
 cd agentpong
 ./install.sh
 ```
 
-The installer will:
-1. Install `terminal-notifier` via Homebrew (if needed)
-2. Copy notification and focus scripts to `~/.claude/`
-3. Configure `Stop` and `PermissionRequest` hooks for Claude Code
-4. Install the OpenCode plugin to `~/.config/opencode/plugins/`
-5. Detect AeroSpace and enable window focus if available
+This method is useful for:
+- Contributing to agentpong
+- Installing from a specific branch (`./install.sh --branch develop`)
+- Modifying scripts before installation
+- Running with `--force` flag to reinstall
+
+### Reinstalling / Updating
+
+To update to the latest version, simply run the install command again. The installer is **idempotent** — it will:
+- Skip files that haven't changed
+- Only update hooks that differ from expected configuration
+- Preserve your existing settings backups
+
+Force a complete reinstall:
+```bash
+curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install-remote.sh | bash -s -- --force
+```
 
 ### Post-install (with AeroSpace)
 
@@ -162,6 +221,12 @@ host.docker.internal:19223                    │
 
 ## 🗑️ Uninstallation
 
+One-line uninstall:
+```bash
+curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/uninstall.sh | bash
+```
+
+Or if you have the repo cloned locally:
 ```bash
 ./uninstall.sh
 ```
