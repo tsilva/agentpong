@@ -71,6 +71,7 @@ log() {
 
 # Cleanup on exit
 cleanup() {
+    printf "\033[?25h\033[0m" 2>/dev/null  # Restore cursor/colors even if style.sh wasn't sourced
     log "INFO" "Cleanup started"
     if [[ -n "$TEMP_DIR" && -d "$TEMP_DIR" ]]; then
         rm -rf "$TEMP_DIR"
@@ -803,7 +804,7 @@ run_install() {
     # Pong intro animation + tagline
     ring_bell
     pong_intro "$AGENTPONG_VERSION"
-    typewrite "Claude pings. You pong back."
+    typewrite "Agents ping. You pong back."
     
     if [[ "$UPDATE_MODE" == true ]]; then
         info "Update mode: only updating changed files"
@@ -1123,9 +1124,10 @@ run_install() {
         banner "Dry-run complete!" "info"
         info "No changes were made. Run without --dry-run to apply."
     else
-        celebration 1.5 "Installation Complete!"
         ring_bell
-        banner "Installation Complete!"
+
+        echo ""
+        section "Installation Complete" "" "" "◆"
 
         echo ""
         section "Quick Start" "" "" "▸"
@@ -1465,7 +1467,10 @@ main() {
     
     # Source styling library
     source "$SRC_DIR/style.sh" 2>/dev/null || true
-    
+
+    # Re-register combined trap (style.sh overwrites install.sh's cleanup trap)
+    trap 'style_cleanup; cleanup' EXIT INT TERM HUP QUIT
+
     # Define all paths
     CLAUDE_DIR="$HOME/.claude"
     NOTIFY_SCRIPT="$CLAUDE_DIR/notify.sh"

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-agentpong is a macOS notification system that alerts users when Claude Code or OpenCode is ready for input. Claude pings, you pong back. It uses AeroSpace and terminal-notifier to send desktop notifications and focus the correct IDE window when clicked - even across multiple workspaces.
+agentpong is a macOS notification system that alerts users when Claude Code or OpenCode is ready for input. Agents ping, you pong back. It uses AeroSpace and terminal-notifier to send desktop notifications and focus the correct IDE window when clicked - even across multiple workspaces.
 
 ## Supported Tools
 

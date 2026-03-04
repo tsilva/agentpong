@@ -37,11 +37,15 @@ fi
 # Dynamic terminal width
 _STYLE_COLS="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
 
+# Dynamic terminal height (for animations)
+_STYLE_LINES="${LINES:-$(tput lines 2>/dev/null || echo 24)}"
+
 # Verbosity: 0=quiet, 1=normal, 2=verbose
 _STYLE_VERBOSITY="${STYLE_VERBOSE:-1}"
 
 # Animation state
 _STYLE_ANIMATION_PID=""
+_STYLE_TMPFILES=()
 
 # =============================================================================
 # COLOR PALETTE - Pong-Themed Gradients
@@ -379,7 +383,7 @@ stop_animation() {
         kill "$_STYLE_ANIMATION_PID" 2>/dev/null || true
         wait "$_STYLE_ANIMATION_PID" 2>/dev/null || true
         _STYLE_ANIMATION_PID=""
-        echo -e "\033[2K\r"  # Clear line
+        printf "\033[2K\r"  # Clear line
     fi
 }
 
@@ -424,56 +428,15 @@ bounce_ball() {
     stop_animation
 }
 
-# Ping-pong table animation
+# Ping-pong table animation (simplified - no animation to prevent terminal glitches)
 table_animation() {
     local duration="${1:-0.5}"
     local message="${2:-Ready}"
     
-    [[ "$_STYLE_HAS_COLOR" != true ]] && { echo "$message"; sleep "$duration"; return; }
+    [[ "$_STYLE_HAS_COLOR" != true ]] && { echo "✓ $message"; sleep "$duration"; return; }
     
-    local frames=(
-        "  ╔════════════════════════╗"
-        "  ║  PING  ○           ○   ║"
-        "  ║       ○ ○              ║"
-        "  ║  ════════  PONG  ══════║"
-        "  ╚════════════════════════╝"
-    )
-    
-    local end_time=$(($(date +%s) + duration))
-    local frame_idx=0
-    
-    (
-        while [[ $(date +%s) -lt $end_time ]]; do
-            printf "\r\033[4A"  # Move up 4 lines
-            for line in "${frames[@]}"; do
-                local colored=""
-                if [[ "$line" == *"PING"* ]]; then
-                    colored="${_C_PINK}${line}${_C_RESET}"
-                elif [[ "$line" == *"PONG"* ]]; then
-                    colored="${_C_CYAN}${line}${_C_RESET}"
-                elif [[ "$line" == *"○"* ]]; then
-                    colored="${_C_BRAND}${line}${_C_RESET}"
-                else
-                    colored="${_C_MUTED}${line}${_C_RESET}"
-                fi
-                echo "$colored"
-            done
-            
-            # Cycle frames (simulate ball movement)
-            frames[1]="  ║  PING  ○           ○   ║"
-            frames[2]="  ║       ○ ○              ║"
-            
-            sleep 0.2
-        done
-        
-        # Final frame
-        printf "\r\033[4A"
-        echo "  ${_C_SUCCESS}╔════════════════════════╗${_C_RESET}"
-        echo "  ${_C_SUCCESS}║     ${message}        ║${_C_RESET}"
-        echo "  ${_C_SUCCESS}║                        ║${_C_RESET}"
-        echo "  ${_C_SUCCESS}╚════════════════════════╝${_C_RESET}"
-    )
-    
+    # Just print a simple success indicator
+    echo "  ${_C_SUCCESS}✓${_C_RESET} ${_C_SUCCESS}${message}${_C_RESET}"
     sleep "$duration"
 }
 
@@ -720,7 +683,8 @@ spin() {
     else
         local spin_chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
         local tmpfile=$(mktemp)
-        
+        _STYLE_TMPFILES+=("$tmpfile")
+
         "$@" > "$tmpfile" 2>&1 &
         local pid=$!
         
@@ -745,6 +709,7 @@ spin() {
         fi
         
         rm -f "$tmpfile"
+        _STYLE_TMPFILES=("${_STYLE_TMPFILES[@]/$tmpfile}")
         return $exit_code
     fi
 }
@@ -854,10 +819,18 @@ clear_with_header() {
 # Cleanup function (call on script exit)
 style_cleanup() {
     stop_animation
+    # Clean up any leaked tmpfiles from spin()
+    local f
+    for f in "${_STYLE_TMPFILES[@]}"; do
+        [[ -n "$f" ]] && rm -f "$f" 2>/dev/null
+    done
+    _STYLE_TMPFILES=()
+    printf "\033[?25h" 2>/dev/null  # Restore cursor visibility
+    printf "\033[0m" 2>/dev/null     # Reset all text attributes
 }
 
 # Set trap for cleanup
-trap style_cleanup EXIT INT TERM
+trap style_cleanup EXIT INT TERM HUP QUIT
 
 # =============================================================================
 # PONG INTRO ANIMATION (The Viral Moment)
@@ -875,8 +848,8 @@ pong_intro() {
         return
     fi
 
-    # Save cursor position and hide cursor
-    printf "\033[s\033[?25l"
+    # Hide cursor (save position AFTER space reservation to survive scrolling)
+    printf "\033[?25l"
 
     # Game field dimensions
     local field_w=48
@@ -908,8 +881,9 @@ pong_intro() {
         echo ""
     done
     
-    # Move cursor back to start of reserved space
-    printf "\033[%dA" "$total_lines"
+    # Move cursor back to start of reserved space and save position
+    # (must save AFTER reservation — scrolling invalidates earlier saves)
+    printf "\033[%dA\033[s" "$total_lines"
 
     local frames=$((duration * 30))
     local frame=0
@@ -971,8 +945,8 @@ pong_intro() {
         (( ${#trail_x[@]} > trail_len )) && trail_x=("${trail_x[@]:1}") && trail_y=("${trail_y[@]:1}")
 
         # --- Render ---
-        # Clear from cursor to end of screen, then restore cursor position
-        printf "\033[J\033[u\033[s"
+        # Restore cursor to top of frame (frame content overwrites in place)
+        printf "\033[u"
 
         # Color-shifting based on frame
         local hue_phase=$(( frame * 3 % 360 ))
@@ -1250,6 +1224,12 @@ celebration() {
         return
     fi
 
+    # Check if terminal has enough height for animation (9 lines needed + 6 buffer)
+    if [[ "$_STYLE_LINES" -lt 15 ]]; then
+        [[ -n "$banner_text" ]] && banner "$banner_text"
+        return
+    fi
+
     local width=50
     local height=7
     local cx=$(( width / 2 ))
@@ -1282,8 +1262,11 @@ celebration() {
 
     printf "\033[?25l"
 
-    # Reserve space
+    # Scroll up to ensure we have enough space (prevents animation glitches)
     local total_lines=$((height + 2))
+    printf "\033[%dS" "$total_lines" 2>/dev/null || true
+    
+    # Reserve space
     for (( i=0; i<total_lines; i++ )); do echo ""; done
 
     local frames=$(( ${duration%.*} * 20 + 10 ))
@@ -1292,11 +1275,12 @@ celebration() {
     while (( frame < frames )); do
         printf "\033[%dA" "$total_lines"
 
-        # Build frame buffer (simple approach: render line by line)
-        local -A field
+        # Build frame buffer using indexed array for bash 3.2 compatibility
+        local -a field
         for (( row=0; row<height; row++ )); do
             for (( col=0; col<width; col++ )); do
-                field["$row,$col"]=" "
+                local idx=$((row * width + col))
+                field[$idx]=" "
             done
         done
 
@@ -1305,7 +1289,10 @@ celebration() {
             local bstart=$(( cx - ${#banner_text} / 2 ))
             for (( c=0; c<${#banner_text}; c++ )); do
                 local bc=$(( bstart + c ))
-                (( bc >= 0 && bc < width )) && field["$cy,$bc"]="${banner_text:c:1}"
+                if (( bc >= 0 && bc < width )); then
+                    local bidx=$((cy * width + bc))
+                    field[$bidx]="${banner_text:c:1}"
+                fi
             done
         fi
 
@@ -1320,7 +1307,8 @@ celebration() {
                 # Distance from center for fade
                 local dist=$(( (pcol - cx) * (pcol - cx) + (prow - cy) * (prow - cy) ))
                 local pidx=$(( p % ${#particle_arr[@]} ))
-                field["$prow,$pcol"]="${particle_arr[$pidx]}|$dist|$frame"
+                local fidx=$((prow * width + pcol))
+                field[$fidx]="${particle_arr[$pidx]}|$dist|$frame"
             fi
         done
 
@@ -1328,7 +1316,8 @@ celebration() {
         for (( row=0; row<height; row++ )); do
             printf "  "
             for (( col=0; col<width; col++ )); do
-                local cell="${field["$row,$col"]}"
+                local ridx=$((row * width + col))
+                local cell="${field[$ridx]}"
                 if [[ "$cell" == *"|"* ]]; then
                     local pchar="${cell%%|*}"
                     local rest="${cell#*|}"
@@ -1396,33 +1385,36 @@ flow_diagram() {
     local desktop_color="$dim"
     [[ "$cc_active" == true || "$oc_active" == true || "$sb_active" == true ]] && desktop_color="$lit"
 
+    # All boxes 15 chars wide for alignment
     # Line 1: main flow
-    printf "  ${cc_color}╭─────────────╮${_C_RESET}"
+    printf "  ${cc_color}╭───────────────╮${_C_RESET}"
     printf "  ${dim}hook${_C_RESET}  "
-    printf "${notify_color}╭────────────╮${_C_RESET}"
+    printf "${notify_color}╭───────────────╮${_C_RESET}"
     printf "  ${dim}notify${_C_RESET}  "
-    printf "${desktop_color}╭──────────╮${_C_RESET}\n"
+    printf "${desktop_color}╭───────────────╮${_C_RESET}\n"
 
-    printf "  ${cc_color}│ Claude Code │${_C_RESET}"
+    printf "  ${cc_color}│  Claude Code  │${_C_RESET}"
     printf "${dim}──────▶${_C_RESET}"
-    printf "${notify_color}│ notify.sh  │${_C_RESET}"
+    printf "${notify_color}│   notify.sh   │${_C_RESET}"
     printf "${dim}────────▶${_C_RESET}"
-    printf "${desktop_color}│ Desktop  │${_C_RESET}\n"
+    printf "${desktop_color}│    Desktop    │${_C_RESET}\n"
 
-    printf "  ${cc_color}╰─────────────╯${_C_RESET}"
+    printf "  ${cc_color}╰───────────────╯${_C_RESET}"
     printf "        "
-    printf "${notify_color}╰────────────╯${_C_RESET}"
+    printf "${notify_color}╰───────────────╯${_C_RESET}"
     printf "          "
-    printf "${desktop_color}╰──────────╯${_C_RESET}\n"
+    printf "${desktop_color}╰───────────────╯${_C_RESET}\n"
 
-    # OpenCode line (if active)
+    # OpenCode line (if active) - aligned under notify.sh
     if [[ "$oc_active" == true ]]; then
         local oc_color="$lit"
-        printf "  ${oc_color}╭─────────────╮${_C_RESET}"
-        printf "${dim}──plugin──▶    ${dim}│${_C_RESET}\n"
-        printf "  ${oc_color}│  OpenCode   │${_C_RESET}"
-        printf "              ${dim}│${_C_RESET}\n"
-        printf "  ${oc_color}╰─────────────╯${_C_RESET}\n"
+        printf "  ${oc_color}╭───────────────╮${_C_RESET}"
+        printf "${dim}──plugin──▶${_C_RESET}"
+        printf "${dim}│${_C_RESET}\n"
+        printf "  ${oc_color}│    OpenCode   │${_C_RESET}"
+        printf "             "
+        printf "${dim}│${_C_RESET}\n"
+        printf "  ${oc_color}╰───────────────╯${_C_RESET}\n"
     fi
 
     echo ""
