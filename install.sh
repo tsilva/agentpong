@@ -161,71 +161,49 @@ download_repo() {
 
 run_preflight() {
     log "INFO" "Starting preflight validation"
-    
-    section "System Validation"
-    
-    # Show bouncing ball animation during detection
-    bounce_ball 2 "Scanning system..."
-    
-    local preflight_results=()
-    
-    # Check macOS
+
+    section "System Scan" "" "" "◎"
+
+    # Fatal checks first (before dashboard)
     if [[ "$OSTYPE" != "darwin"* ]]; then
         error "This tool only works on macOS (detected: $OSTYPE)"
         log "ERROR" "Unsupported OS: $OSTYPE"
         return 1
     fi
-    preflight_results+=("Operating System" "✓ macOS")
-    
-    # Check macOS version (warn if < 14.x)
-    local macos_version=$(sw_vers -productVersion)
-    local major_version=$(echo "$macos_version" | cut -d. -f1)
-    if [[ "$major_version" -lt 14 ]]; then
-        warn "macOS $macos_version detected. Best on macOS 14+"
-        log "WARN" "Old macOS version: $macos_version"
-        preflight_results+=("macOS Version" "⚠ $macos_version")
-    else
-        preflight_results+=("macOS Version" "✓ $macos_version")
-    fi
-    
-    # Check write permissions
+
     if [[ ! -w "$HOME" ]]; then
         error "Cannot write to home directory: $HOME"
         log "ERROR" "No write permission to $HOME"
         return 1
     fi
-    
+
     local test_dir="$HOME/.claude"
     if [[ -d "$test_dir" && ! -w "$test_dir" ]]; then
         error "Cannot write to $test_dir"
         log "ERROR" "No write permission to $test_dir"
         return 1
     fi
-    preflight_results+=("Permissions" "✓ OK")
-    
-    # Check if Claude Code is installed
-    if command -v claude &> /dev/null || [[ -d "$HOME/.claude" ]]; then
-        preflight_results+=("Claude Code" "✓ Installed")
-    else
-        warn "Claude Code not detected"
-        dim "Install: https://claude.ai/download"
-        log "WARN" "Claude Code not detected"
-        preflight_results+=("Claude Code" "⚠ Not found")
+
+    # Build scan dashboard checks
+    local -a scan_args=()
+
+    scan_args+=("Operating System" "echo \"macOS $(sw_vers -productVersion)\"")
+    scan_args+=("Architecture" "uname -m | sed 's/arm64/Apple Silicon/' | sed 's/x86_64/Intel/'")
+    scan_args+=("Permissions" "echo OK")
+    scan_args+=("Claude Code" "command -v claude >/dev/null 2>&1 && claude --version 2>/dev/null | head -1 || { [[ -d \"\$HOME/.claude\" ]] && echo 'Detected' || return 1; }")
+    scan_args+=("terminal-notifier" "command -v terminal-notifier >/dev/null 2>&1 && echo 'Installed' || return 1")
+    scan_args+=("jq" "command -v jq >/dev/null 2>&1 && jq --version 2>/dev/null | sed 's/jq-//' || return 1")
+    scan_args+=("AeroSpace" "{ command -v aerospace >/dev/null 2>&1 || [[ -x /opt/homebrew/bin/aerospace ]] || [[ -x /usr/local/bin/aerospace ]]; } && { aerospace --version 2>/dev/null | head -1 || echo 'Installed'; } || return 1")
+    scan_args+=("OpenCode" "{ [[ -d \"\$HOME/.opencode\" ]] || [[ -d \"\$HOME/.config/opencode\" ]] || command -v opencode >/dev/null 2>&1; } && echo 'Detected' || return 1")
+    scan_args+=("Homebrew" "command -v brew >/dev/null 2>&1 && echo 'Installed' || return 1")
+
+    if [[ "${INSTALL_SANDBOX:-false}" == true ]]; then
+        scan_args+=("Port 19223" "! lsof -Pi :19223 -sTCP:LISTEN -t >/dev/null 2>&1 && echo 'Available' || { echo 'In use'; return 1; }")
     fi
-    
-    # Check port 19223 for sandbox
-    if [[ "$INSTALL_SANDBOX" == true ]]; then
-        if lsof -Pi :19223 -sTCP:LISTEN -t >/dev/null 2>&1; then
-            warn "Port 19223 in use"
-            preflight_results+=("Port 19223" "⚠ In use")
-        else
-            preflight_results+=("Port 19223" "✓ Available")
-        fi
-    fi
-    
-    # Show results in a grid
-    show_status_grid "${preflight_results[@]}"
-    
+
+    echo ""
+    scan_dashboard "${scan_args[@]}"
+
     log "INFO" "Preflight checks passed"
     return 0
 }
@@ -623,7 +601,7 @@ run_uninstall() {
 run_health_check() {
     log "INFO" "Running health check"
     
-    section "Health Check"
+    section "Health Check" "" "" "◎"
     
     local all_ok=true
     
@@ -737,7 +715,7 @@ test_notification() {
     fi
     
     echo ""
-    section "Live Test"
+    section "Live Test" "" "" "▸"
     
     info "Sending test notification..."
     
@@ -822,8 +800,10 @@ run_wizard() {
 run_install() {
     log "INFO" "Starting installation"
     
-    # Show pong-themed logo
-    show_logo "$AGENTPONG_VERSION"
+    # Pong intro animation + tagline
+    ring_bell
+    pong_intro "$AGENTPONG_VERSION"
+    typewrite "Claude pings. You pong back."
     
     if [[ "$UPDATE_MODE" == true ]]; then
         info "Update mode: only updating changed files"
@@ -843,8 +823,11 @@ run_install() {
         run_wizard
     fi
     
+    # Show architecture flow diagram
+    flow_diagram true "$DETECTED_OPENCODE" "$DETECTED_SANDBOX"
+
     # Phase 2: Dependencies
-    section "Installing Dependencies"
+    section "Installing Dependencies" "" "" "↯"
     
     # Check for jq
     if ! command -v jq &> /dev/null; then
@@ -890,7 +873,7 @@ run_install() {
     fi
     
     # Install core files
-    section "Setting up Claude Code integration"
+    section "Setting up Claude Code integration" "" "" "⚙"
     
     dry_aware_mkdir "$CLAUDE_DIR"
     add_rollback "rmdir '$CLAUDE_DIR' 2>/dev/null || true"
@@ -1106,7 +1089,7 @@ run_install() {
     fi
     
     # Show summary with status grid
-    section "Installation Complete"
+    section "Installation Complete" "" "" "◆"
     
     local summary_items=(
         "Notifications" "✓ Enabled"
@@ -1140,16 +1123,20 @@ run_install() {
         banner "Dry-run complete!" "info"
         info "No changes were made. Run without --dry-run to apply."
     else
-        banner "🎉 Installation Complete!"
-        
+        celebration 1.5 "Installation Complete!"
+        ring_bell
+        banner "Installation Complete!"
+
         echo ""
-        section "Quick Start"
+        section "Quick Start" "" "" "▸"
         
         cascade_success \
             "Notifications enabled for Claude Code" \
             "Click notifications to focus window" \
             "Use 'pong.sh' to cycle notifications"
         
+        echo ""
+        typewrite "Ready to pong."
         echo ""
         info "Cursor/VS Code: Works automatically"
         dim "Start a new Claude session to test"
@@ -1216,7 +1203,7 @@ hook_exists_with_value() {
 install_opencode_support() {
     log "INFO" "Installing OpenCode support"
     
-    section "Installing OpenCode support"
+    section "Installing OpenCode support" "" "" "⚙"
     
     local opencode_updated=false
     
@@ -1298,7 +1285,7 @@ install_opencode_support() {
 install_sandbox_support() {
     log "INFO" "Installing sandbox support"
     
-    section "Installing sandbox support"
+    section "Installing sandbox support" "" "" "⚙"
     
     local sandbox_updated=false
     

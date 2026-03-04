@@ -145,14 +145,19 @@ main() {
     # Source styling library
     source "$SRC_DIR/style.sh" 2>/dev/null || true
     
+    # Pong intro + tagline
+    ring_bell
+    pong_intro ""
+    typewrite "Time to say goodbye."
+
     header "agentpong" "Uninstaller v${UNINSTALL_VERSION}"
-    
+
     if [[ "$DRY_RUN" == true ]]; then
         info "Dry-run mode: no changes will be made"
     fi
 
     # === Preview what will be done ===
-    section "Actions to perform"
+    section "Actions to perform" "" "" "◎"
 
     local items_to_remove=()
     local hooks_to_remove=()
@@ -253,7 +258,7 @@ main() {
     fi
 
     # === Execute removal ===
-    section "Removing files..."
+    section "Removing files" "" "" "⚙"
 
     # Remove core files
     for file in "${items_to_remove[@]}"; do
@@ -302,6 +307,8 @@ main() {
         success "Removed launchd service"
     fi
 
+    celebration 1.5 "Uninstallation complete!"
+    ring_bell
     banner "Uninstallation complete!"
 
     note "terminal-notifier was not removed (you may have other uses for it)."

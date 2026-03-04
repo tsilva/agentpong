@@ -143,7 +143,7 @@ gradient_text() {
 # Usage: pulse_text "text" [duration_seconds]
 pulse_text() {
     local text="$1"
-    local duration="${2:-2}"
+    local duration="${2:-0.5}"
     
     [[ "$_STYLE_HAS_COLOR" != true ]] && { echo "$text"; return; }
     [[ -t 1 ]] || { echo "$text"; return; }
@@ -241,24 +241,35 @@ header() {
 # SECTION DIVIDERS
 # =============================================================================
 
-# Section divider with progress indicator
+# Section divider with progress indicator and optional icon
+# Usage: section "text" [phase] [total] [icon]
+# Icons: ◎ (scan), ⚙ (config), ◆ (complete), ▸ (action), ↯ (deps)
 section() {
     local text="${1:-}"
     local phase="${2:-}"
     local total="${3:-}"
-    
+    local icon="${4:-}"
+
     local prefix=""
-    if [[ -n "$phase" && -n "$total" ]]; then
-        prefix="━━ Phase ${phase}/${total}: ${text} "
+    if [[ -n "$icon" ]]; then
+        if [[ -n "$phase" && -n "$total" ]]; then
+            prefix="━━ ${icon} Phase ${phase}/${total}: ${text} "
+        else
+            prefix="━━ ${icon} ${text} "
+        fi
     else
-        prefix="━━ ${text} "
+        if [[ -n "$phase" && -n "$total" ]]; then
+            prefix="━━ Phase ${phase}/${total}: ${text} "
+        else
+            prefix="━━ ${text} "
+        fi
     fi
-    
+
     local prefix_len=$(( ${#prefix} ))
     local trail_len=$(( _STYLE_COLS - prefix_len - 2 ))
     (( trail_len < 4 )) && trail_len=4
     local trail=$(printf '━%.0s' $(seq 1 $trail_len))
-    
+
     echo ""
     echo "  ${_C_PURPLE}${_C_BOLD}${prefix}${trail}${_C_RESET}"
 }
@@ -374,7 +385,7 @@ stop_animation() {
 
 # Bouncing ball animation (for "detecting" phase)
 bounce_ball() {
-    local duration="${1:-3}"
+    local duration="${1:-1}"
     local message="${2:-Detecting...}"
     local width=30
     
@@ -415,7 +426,7 @@ bounce_ball() {
 
 # Ping-pong table animation
 table_animation() {
-    local duration="${1:-2}"
+    local duration="${1:-0.5}"
     local message="${2:-Ready}"
     
     [[ "$_STYLE_HAS_COLOR" != true ]] && { echo "$message"; sleep "$duration"; return; }
@@ -847,3 +858,572 @@ style_cleanup() {
 
 # Set trap for cleanup
 trap style_cleanup EXIT INT TERM
+
+# =============================================================================
+# PONG INTRO ANIMATION (The Viral Moment)
+# =============================================================================
+
+# Self-playing pong game intro - 3 seconds of animated pong
+# Falls back to show_logo on non-TTY/NO_COLOR
+pong_intro() {
+    local version="${1:-}"
+    local duration="${2:-1}"
+
+    # Fallback for non-interactive
+    if [[ "$_STYLE_HAS_COLOR" != true ]] || [[ ! -t 1 ]]; then
+        show_logo "$version"
+        return
+    fi
+
+    # Save cursor position and hide cursor
+    printf "\033[s\033[?25l"
+
+    # Game field dimensions
+    local field_w=48
+    local field_h=11
+    local pad_h=3
+
+    # Ball state (multiplied by 10 for sub-character precision)
+    local bx=240 by=55  # center-ish
+    local bdx=18 bdy=12 # velocity
+
+    # Paddle positions (y of top of paddle)
+    local lp=4 rp=4
+
+    # Score
+    local ls=0 rs=0
+
+    # Trail buffer (last 6 positions)
+    local -a trail_x=() trail_y=()
+    local trail_len=6
+
+    # Unicode blocks for smooth rendering
+    local ball_char="●"
+    local pad_char="█"
+
+    # Reserve space by printing the full frame first (with newlines)
+    local total_lines=$((field_h + 4))
+    local i
+    for (( i=0; i<total_lines; i++ )); do 
+        echo ""
+    done
+    
+    # Move cursor back to start of reserved space
+    printf "\033[%dA" "$total_lines"
+
+    local frames=$((duration * 30))
+    local frame=0
+
+    while (( frame < frames )); do
+        # --- AI paddle tracking ---
+        local ball_y_cell=$(( by / 10 ))
+        local lp_center=$(( lp + pad_h / 2 ))
+        local rp_center=$(( rp + pad_h / 2 ))
+        (( ball_y_cell > lp_center && lp + pad_h < field_h )) && (( lp++ ))
+        (( ball_y_cell < lp_center && lp > 1 )) && (( lp-- ))
+        (( ball_y_cell > rp_center && rp + pad_h < field_h )) && (( rp++ ))
+        (( ball_y_cell < rp_center && rp > 1 )) && (( rp-- ))
+
+        # --- Ball physics ---
+        (( bx += bdx ))
+        (( by += bdy ))
+
+        # Top/bottom bounce
+        if (( by <= 10 )); then by=10; (( bdy = -bdy )); fi
+        if (( by >= (field_h - 1) * 10 )); then by=$(( (field_h - 1) * 10 )); (( bdy = -bdy )); fi
+
+        # Left paddle hit
+        local bx_cell=$(( bx / 10 ))
+        local by_cell=$(( by / 10 ))
+        if (( bx_cell <= 3 && by_cell >= lp && by_cell < lp + pad_h )); then
+            bx=30; (( bdx = -bdx ))
+            # Add spin based on where ball hits paddle
+            local hit_pos=$(( by_cell - lp ))
+            (( hit_pos == 0 )) && bdy=$(( bdy > 0 ? bdy : -bdy - 2 ))
+            (( hit_pos == pad_h - 1 )) && bdy=$(( bdy < 0 ? bdy : -bdy + 2 ))
+        fi
+
+        # Right paddle hit
+        if (( bx_cell >= field_w - 4 && by_cell >= rp && by_cell < rp + pad_h )); then
+            bx=$(( (field_w - 4) * 10 )); (( bdx = -bdx ))
+            local hit_pos=$(( by_cell - rp ))
+            (( hit_pos == 0 )) && bdy=$(( bdy > 0 ? bdy : -bdy - 2 ))
+            (( hit_pos == pad_h - 1 )) && bdy=$(( bdy < 0 ? bdy : -bdy + 2 ))
+        fi
+
+        # Score (ball past paddles)
+        if (( bx <= 0 )); then
+            (( rs++ )); bx=240; by=55; bdx=18; bdy=$((RANDOM % 15 + 8))
+            (( RANDOM % 2 == 0 )) && bdy=$(( -bdy ))
+        fi
+        if (( bx >= field_w * 10 )); then
+            (( ls++ )); bx=240; by=55; bdx=-18; bdy=$((RANDOM % 15 + 8))
+            (( RANDOM % 2 == 0 )) && bdy=$(( -bdy ))
+        fi
+
+        # Clamp velocity
+        (( bdy > 20 )) && bdy=20
+        (( bdy < -20 )) && bdy=-20
+
+        # Update trail
+        trail_x+=("$bx_cell")
+        trail_y+=("$by_cell")
+        (( ${#trail_x[@]} > trail_len )) && trail_x=("${trail_x[@]:1}") && trail_y=("${trail_y[@]:1}")
+
+        # --- Render ---
+        # Clear from cursor to end of screen, then restore cursor position
+        printf "\033[J\033[u\033[s"
+
+        # Color-shifting based on frame
+        local hue_phase=$(( frame * 3 % 360 ))
+        local br=$(( 175 + 80 * (frame % 20 - 10) / 10 ))
+        (( br < 135 )) && br=135
+        (( br > 255 )) && br=255
+        local bg=$(( 135 + 70 * ((frame + 7) % 20 - 10) / 10 ))
+        (( bg < 100 )) && bg=100
+        (( bg > 255 )) && bg=255
+        local bb=$(( 215 + 40 * ((frame + 14) % 20 - 10) / 10 ))
+        (( bb < 175 )) && bb=175
+        (( bb > 255 )) && bb=255
+
+        bx_cell=$(( bx / 10 ))
+        by_cell=$(( by / 10 ))
+
+        # Top border with score
+        local score_display
+        printf -v score_display "  ${_C_MUTED}╭──────────────────────%s──────────────────────╮${_C_RESET}" \
+            "$(printf " ${_C_PINK}%d${_C_MUTED} : ${_C_CYAN}%d${_C_MUTED} " "$ls" "$rs")"
+        echo "$score_display"
+
+        # Field rows
+        local row col
+        for (( row=0; row<field_h; row++ )); do
+            local line="  ${_C_MUTED}│${_C_RESET}"
+            for (( col=0; col<field_w; col++ )); do
+                local ch=" "
+                local color=""
+
+                # Center line
+                if (( col == field_w / 2 )); then
+                    if (( row % 2 == 0 )); then
+                        ch="┊"
+                        color="${_C_MUTED}"
+                    fi
+                fi
+
+                # Left paddle
+                if (( col >= 1 && col <= 2 && row >= lp && row < lp + pad_h )); then
+                    ch="$pad_char"
+                    color="${_C_PINK}"
+                fi
+
+                # Right paddle
+                if (( col >= field_w - 3 && col <= field_w - 2 && row >= rp && row < rp + pad_h )); then
+                    ch="$pad_char"
+                    color="${_C_CYAN}"
+                fi
+
+                # Trail
+                local ti
+                for (( ti=0; ti<${#trail_x[@]}; ti++ )); do
+                    if (( trail_x[ti] == col && trail_y[ti] == row )); then
+                        local fade=$(( 60 + ti * 25 ))
+                        (( fade > 180 )) && fade=180
+                        ch="·"
+                        if [[ "$_STYLE_HAS_TRUECOLOR" == true ]]; then
+                            color="\033[38;2;${fade};${fade};${fade}m"
+                        else
+                            color="${_C_MUTED}"
+                        fi
+                    fi
+                done
+
+                # Ball (overwrites trail)
+                if (( bx_cell == col && by_cell == row )); then
+                    ch="$ball_char"
+                    if [[ "$_STYLE_HAS_TRUECOLOR" == true ]]; then
+                        color="\033[38;2;${br};${bg};${bb}m"
+                    else
+                        color="${_C_BRAND}"
+                    fi
+                fi
+
+                if [[ -n "$color" ]]; then
+                    printf "%b%s%b" "$color" "$ch" "${_C_RESET}"
+                else
+                    printf "%s" "$ch"
+                fi
+            done
+            echo "${_C_MUTED}│${_C_RESET}"
+        done
+
+        # Bottom border
+        echo "  ${_C_MUTED}╰────────────────────────────────────────────────╯${_C_RESET}"
+
+        # Title line
+        if [[ "$_STYLE_HAS_TRUECOLOR" == true ]]; then
+            local title_r=$(( 175 + (135 - 175) * (frame % 60) / 60 ))
+            local title_g=$(( 135 + (206 - 135) * (frame % 60) / 60 ))
+            local title_b=255
+            printf "  \033[38;2;%d;%d;%dm  a g e n t p o n g${_C_RESET}" "$title_r" "$title_g" "$title_b"
+            if [[ -n "$version" ]]; then
+                printf "  ${_C_MUTED}v%s${_C_RESET}" "$version"
+            fi
+        else
+            printf "  ${_C_BRAND}  a g e n t p o n g${_C_RESET}"
+            if [[ -n "$version" ]]; then
+                printf "  ${_C_MUTED}v%s${_C_RESET}" "$version"
+            fi
+        fi
+        echo ""
+
+        (( frame++ ))
+        sleep 0.016
+    done
+
+    # Show cursor and move to new line
+    printf "\033[?25h"
+    echo ""
+}
+
+# =============================================================================
+# TYPEWRITER EFFECT
+# =============================================================================
+
+# Print text character by character with dramatic pacing
+# Usage: typewrite "text" [char_delay] [end_pause]
+typewrite() {
+    local text="$1"
+    local char_delay="${2:-0.02}"
+    local end_pause="${3:-0.2}"
+
+    if [[ "$_STYLE_HAS_COLOR" != true ]] || [[ ! -t 1 ]]; then
+        echo "  $text"
+        return
+    fi
+
+    printf "  "
+    local i
+    for (( i=0; i<${#text}; i++ )); do
+        local ch="${text:i:1}"
+        if [[ "$ch" == "." ]]; then
+            printf "%b%s%b" "${_C_BRAND}" "$ch" "${_C_RESET}"
+            sleep 0.2
+        elif [[ "$ch" == " " ]]; then
+            printf " "
+            sleep "$char_delay"
+        else
+            printf "%b%s%b" "${_C_WHITE}" "$ch" "${_C_RESET}"
+            sleep "$char_delay"
+        fi
+    done
+    sleep "$end_pause"
+    echo ""
+}
+
+# =============================================================================
+# TERMINAL BELL
+# =============================================================================
+
+# Ring terminal bell (respects AGENTPONG_SOUND env var)
+ring_bell() {
+    if [[ "${AGENTPONG_SOUND:-true}" == "false" ]]; then
+        return
+    fi
+    if [[ -t 1 ]]; then
+        printf "\a"
+    fi
+}
+
+# =============================================================================
+# SCAN DASHBOARD (Hacker-Movie Boot Sequence)
+# =============================================================================
+
+# Real-time system scan with animated dot-fill
+# Usage: scan_dashboard "label1" "command1" "label2" "command2" ...
+# Each command should echo its result value on success or return non-zero on failure
+scan_dashboard() {
+    local -a labels=()
+    local -a commands=()
+    local -a results=()
+    local -a statuses=()
+
+    # Parse label/command pairs
+    while [[ $# -ge 2 ]]; do
+        labels+=("$1")
+        commands+=("$2")
+        shift 2
+    done
+
+    local count=${#labels[@]}
+    [[ $count -eq 0 ]] && return 0
+
+    # Non-interactive fallback
+    if [[ "$_STYLE_HAS_COLOR" != true ]] || [[ ! -t 1 ]]; then
+        local i
+        for (( i=0; i<count; i++ )); do
+            local result
+            result=$(eval "${commands[$i]}" 2>/dev/null) && statuses+=("ok") || statuses+=("skip")
+            echo "  ${labels[$i]}: ${result:-N/A}"
+        done
+        return 0
+    fi
+
+    local max_label_len=0
+    local i
+    for (( i=0; i<count; i++ )); do
+        (( ${#labels[$i]} > max_label_len )) && max_label_len=${#labels[$i]}
+    done
+
+    local dot_width=$(( 44 - max_label_len ))
+    (( dot_width < 8 )) && dot_width=8
+
+    printf "\033[?25l"
+
+    local start_time=$SECONDS
+    local passed=0 skipped=0
+
+    for (( i=0; i<count; i++ )); do
+        local label="${labels[$i]}"
+        local cmd="${commands[$i]}"
+
+        # Print label with padding
+        local pad=$(( max_label_len - ${#label} ))
+        printf "  ${_C_WHITE}%s${_C_RESET}%*s " "$label" "$pad" ""
+
+        # Animate dots filling in
+        local d
+        for (( d=0; d<dot_width; d++ )); do
+            if [[ "$_STYLE_HAS_TRUECOLOR" == true ]]; then
+                local brightness=$(( 80 + d * 3 ))
+                (( brightness > 160 )) && brightness=160
+                printf "\033[38;2;%d;%d;%dm·\033[0m" "$brightness" "$brightness" "$brightness"
+            else
+                printf "${_C_MUTED}·${_C_RESET}"
+            fi
+            # Faster dots for snappier feel
+            sleep 0.008
+        done
+
+        # Execute the check command
+        local result
+        if result=$(eval "$cmd" 2>/dev/null); then
+            results+=("$result")
+            statuses+=("ok")
+            (( passed++ ))
+            # Print result on the right
+            printf " ${_C_WHITE}%-14s${_C_RESET} ${_C_SUCCESS}✓${_C_RESET}\n" "$result"
+        else
+            result="${result:-Not found}"
+            results+=("$result")
+            statuses+=("skip")
+            (( skipped++ ))
+            printf " ${_C_MUTED}%-14s${_C_RESET} ${_C_MUTED}○${_C_RESET}\n" "$result"
+        fi
+    done
+
+    # Summary line
+    local elapsed=$(( SECONDS - start_time ))
+    (( elapsed < 1 )) && elapsed=1
+    local total=$count
+    local sep=$(printf '─%.0s' $(seq 1 $(( max_label_len + dot_width + 22 ))))
+    echo "  ${_C_MUTED}${sep}${_C_RESET}"
+    printf "  ${_C_WHITE}%d/%d checks passed${_C_RESET}%*s${_C_MUTED}%d.%ds${_C_RESET}\n" \
+        "$passed" "$total" $(( max_label_len + dot_width + 2 - 18 )) "" "$elapsed" "$(( RANDOM % 10 ))"
+
+    printf "\033[?25h"
+    echo ""
+}
+
+# =============================================================================
+# CELEBRATION PARTICLES
+# =============================================================================
+
+# Starburst particle effect radiating from center
+# Usage: celebration [duration_seconds]
+celebration() {
+    local duration="${1:-0.8}"
+    local banner_text="${2:-}"
+
+    if [[ "$_STYLE_HAS_COLOR" != true ]] || [[ ! -t 1 ]]; then
+        [[ -n "$banner_text" ]] && banner "$banner_text"
+        return
+    fi
+
+    local width=50
+    local height=7
+    local cx=$(( width / 2 ))
+    local cy=$(( height / 2 ))
+    local particles="✦ ✧ ✵ · ⋆ ✫ +"
+    local -a particle_arr
+    IFS=' ' read -ra particle_arr <<< "$particles"
+    local num_particles=24
+
+    # Generate particles with random angles
+    local -a px=() py=() pvx=() pvy=()
+    for (( p=0; p<num_particles; p++ )); do
+        px+=("$((cx * 10))")
+        py+=("$((cy * 10))")
+        # Random velocity in 8+ directions
+        local angle=$(( RANDOM % 628 ))  # 0 to 2*pi*100
+        # Approximate sin/cos with lookup
+        local speed=$(( RANDOM % 15 + 8 ))
+        case $(( angle / 79 )) in
+            0) pvx+=("$speed"); pvy+=("0") ;;
+            1) pvx+=("$((speed * 7 / 10))"); pvy+=("$((speed * 7 / 10))") ;;
+            2) pvx+=("0"); pvy+=("$speed") ;;
+            3) pvx+=("$((-speed * 7 / 10))"); pvy+=("$((speed * 7 / 10))") ;;
+            4) pvx+=("$((-speed))"); pvy+=("0") ;;
+            5) pvx+=("$((-speed * 7 / 10))"); pvy+=("$((-speed * 7 / 10))") ;;
+            6) pvx+=("0"); pvy+=("$((-speed))") ;;
+            *) pvx+=("$((speed * 7 / 10))"); pvy+=("$((-speed * 7 / 10))") ;;
+        esac
+    done
+
+    printf "\033[?25l"
+
+    # Reserve space
+    local total_lines=$((height + 2))
+    for (( i=0; i<total_lines; i++ )); do echo ""; done
+
+    local frames=$(( ${duration%.*} * 20 + 10 ))
+    local frame=0
+
+    while (( frame < frames )); do
+        printf "\033[%dA" "$total_lines"
+
+        # Build frame buffer (simple approach: render line by line)
+        local -A field
+        for (( row=0; row<height; row++ )); do
+            for (( col=0; col<width; col++ )); do
+                field["$row,$col"]=" "
+            done
+        done
+
+        # Banner text in center
+        if [[ -n "$banner_text" ]]; then
+            local bstart=$(( cx - ${#banner_text} / 2 ))
+            for (( c=0; c<${#banner_text}; c++ )); do
+                local bc=$(( bstart + c ))
+                (( bc >= 0 && bc < width )) && field["$cy,$bc"]="${banner_text:c:1}"
+            done
+        fi
+
+        # Update and place particles
+        for (( p=0; p<num_particles; p++ )); do
+            (( px[p] += pvx[p] ))
+            (( py[p] += pvy[p] ))
+            local pcol=$(( px[p] / 10 ))
+            local prow=$(( py[p] / 10 ))
+
+            if (( prow >= 0 && prow < height && pcol >= 0 && pcol < width )); then
+                # Distance from center for fade
+                local dist=$(( (pcol - cx) * (pcol - cx) + (prow - cy) * (prow - cy) ))
+                local pidx=$(( p % ${#particle_arr[@]} ))
+                field["$prow,$pcol"]="${particle_arr[$pidx]}|$dist|$frame"
+            fi
+        done
+
+        # Render
+        for (( row=0; row<height; row++ )); do
+            printf "  "
+            for (( col=0; col<width; col++ )); do
+                local cell="${field["$row,$col"]}"
+                if [[ "$cell" == *"|"* ]]; then
+                    local pchar="${cell%%|*}"
+                    local rest="${cell#*|}"
+                    local pdist="${rest%%|*}"
+                    # Fade brightness with distance and time
+                    local brightness=$(( 255 - pdist * 3 - frame * 4 ))
+                    (( brightness < 40 )) && brightness=40
+                    (( brightness > 255 )) && brightness=255
+                    # Gradient from purple to pink based on distance
+                    local pr=$(( 175 + pdist * 2 ))
+                    (( pr > 255 )) && pr=255
+                    local pg=$(( 135 ))
+                    local pb=$(( 255 - pdist ))
+                    (( pb < 135 )) && pb=135
+                    # Apply brightness fade
+                    pr=$(( pr * brightness / 255 ))
+                    pg=$(( pg * brightness / 255 ))
+                    pb=$(( pb * brightness / 255 ))
+                    if [[ "$_STYLE_HAS_TRUECOLOR" == true ]]; then
+                        printf "\033[38;2;%d;%d;%dm%s\033[0m" "$pr" "$pg" "$pb" "$pchar"
+                    else
+                        printf "${_C_BRAND}%s${_C_RESET}" "$pchar"
+                    fi
+                elif [[ "$cell" != " " && -n "$banner_text" ]]; then
+                    printf "${_C_SUCCESS}${_C_BOLD}%s${_C_RESET}" "$cell"
+                else
+                    printf " "
+                fi
+            done
+            echo ""
+        done
+
+        (( frame++ ))
+        sleep 0.05
+    done
+
+    printf "\033[?25h"
+}
+
+# =============================================================================
+# ARCHITECTURE FLOW DIAGRAM
+# =============================================================================
+
+# Animated flow diagram showing agentpong data flow
+# Usage: flow_diagram [claude_code_active] [opencode_active] [sandbox_active]
+flow_diagram() {
+    local cc_active="${1:-true}"
+    local oc_active="${2:-false}"
+    local sb_active="${3:-false}"
+
+    if [[ "$_STYLE_HAS_COLOR" != true ]] || [[ ! -t 1 ]]; then
+        return
+    fi
+
+    echo ""
+    local dim="${_C_MUTED}"
+    local lit="${_C_SUCCESS}"
+    local brand="${_C_BRAND}"
+
+    # Colors for each node based on active state
+    local cc_color="$dim"
+    [[ "$cc_active" == true ]] && cc_color="$lit"
+    local notify_color="$dim"
+    [[ "$cc_active" == true || "$oc_active" == true || "$sb_active" == true ]] && notify_color="$lit"
+    local desktop_color="$dim"
+    [[ "$cc_active" == true || "$oc_active" == true || "$sb_active" == true ]] && desktop_color="$lit"
+
+    # Line 1: main flow
+    printf "  ${cc_color}╭─────────────╮${_C_RESET}"
+    printf "  ${dim}hook${_C_RESET}  "
+    printf "${notify_color}╭────────────╮${_C_RESET}"
+    printf "  ${dim}notify${_C_RESET}  "
+    printf "${desktop_color}╭──────────╮${_C_RESET}\n"
+
+    printf "  ${cc_color}│ Claude Code │${_C_RESET}"
+    printf "${dim}──────▶${_C_RESET}"
+    printf "${notify_color}│ notify.sh  │${_C_RESET}"
+    printf "${dim}────────▶${_C_RESET}"
+    printf "${desktop_color}│ Desktop  │${_C_RESET}\n"
+
+    printf "  ${cc_color}╰─────────────╯${_C_RESET}"
+    printf "        "
+    printf "${notify_color}╰────────────╯${_C_RESET}"
+    printf "          "
+    printf "${desktop_color}╰──────────╯${_C_RESET}\n"
+
+    # OpenCode line (if active)
+    if [[ "$oc_active" == true ]]; then
+        local oc_color="$lit"
+        printf "  ${oc_color}╭─────────────╮${_C_RESET}"
+        printf "${dim}──plugin──▶    ${dim}│${_C_RESET}\n"
+        printf "  ${oc_color}│  OpenCode   │${_C_RESET}"
+        printf "              ${dim}│${_C_RESET}\n"
+        printf "  ${oc_color}╰─────────────╯${_C_RESET}\n"
+    fi
+
+    echo ""
+}
