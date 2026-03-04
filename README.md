@@ -71,7 +71,9 @@ bash install-agentpong.sh
 
 ### Optional
 
-- **[AeroSpace](https://github.com/nikitabobko/AeroSpace)** — Enables cross-workspace window focus when clicking notifications
+- **[AeroSpace](https://github.com/nikitabobko/AeroSpace)** — Enables cross-workspace window focus when clicking notifications. 
+
+  **Note:** agentpong works without AeroSpace — clicking notifications will still activate your IDE via AppleScript. However, workspace keyboard shortcuts (like `alt+n` to cycle notifications) require AeroSpace due to macOS Sequoia 15.x API limitations. For the full window management experience with workspace shortcuts, see [aerospace-setup](https://github.com/tsilva/aerospace-setup).
 
 ## 🚀 Installation
 
