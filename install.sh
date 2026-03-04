@@ -106,7 +106,10 @@ add_rollback() {
 init_remote_styling() {
     _C_BOLD='\033[1m'
     _C_RESET='\033[0m'
-    _C_BRAND='\033[38;5;141m'
+    _C_BRAND='\033[38;5;141m'   # Purple
+    _C_PINK='\033[38;5;212m'     # Pink
+    _C_BLUE='\033[38;5;117m'    # Blue
+    _C_CYAN='\033[38;5;122m'    # Cyan
     _C_SUCCESS='\033[38;5;114m'
     _C_ERROR='\033[38;5;203m'
     _C_WARN='\033[38;5;221m'
@@ -159,30 +162,33 @@ download_repo() {
 run_preflight() {
     log "INFO" "Starting preflight validation"
     
-    section "Pre-flight checks"
+    section "System Validation"
+    
+    # Show bouncing ball animation during detection
+    bounce_ball 2 "Scanning system..."
+    
+    local preflight_results=()
     
     # Check macOS
-    step "Checking operating system..."
     if [[ "$OSTYPE" != "darwin"* ]]; then
         error "This tool only works on macOS (detected: $OSTYPE)"
         log "ERROR" "Unsupported OS: $OSTYPE"
         return 1
     fi
-    success "Running on macOS"
+    preflight_results+=("Operating System" "✓ macOS")
     
     # Check macOS version (warn if < 14.x)
-    step "Checking macOS version..."
     local macos_version=$(sw_vers -productVersion)
     local major_version=$(echo "$macos_version" | cut -d. -f1)
     if [[ "$major_version" -lt 14 ]]; then
-        warn "macOS $macos_version detected. agentpong works best on macOS 14+ (Sonoma/Sequoia)"
+        warn "macOS $macos_version detected. Best on macOS 14+"
         log "WARN" "Old macOS version: $macos_version"
+        preflight_results+=("macOS Version" "⚠ $macos_version")
     else
-        success "macOS $macos_version (supported)"
+        preflight_results+=("macOS Version" "✓ $macos_version")
     fi
     
     # Check write permissions
-    step "Checking permissions..."
     if [[ ! -w "$HOME" ]]; then
         error "Cannot write to home directory: $HOME"
         log "ERROR" "No write permission to $HOME"
@@ -195,28 +201,30 @@ run_preflight() {
         log "ERROR" "No write permission to $test_dir"
         return 1
     fi
-    success "Write permissions OK"
+    preflight_results+=("Permissions" "✓ OK")
     
-    # Check if Claude Code is installed (warn if not)
-    step "Checking for Claude Code..."
+    # Check if Claude Code is installed
     if command -v claude &> /dev/null || [[ -d "$HOME/.claude" ]]; then
-        success "Claude Code appears to be installed"
+        preflight_results+=("Claude Code" "✓ Installed")
     else
-        warn "Claude Code installation not detected"
-        dim "Install Claude Code: https://claude.ai/download"
+        warn "Claude Code not detected"
+        dim "Install: https://claude.ai/download"
         log "WARN" "Claude Code not detected"
+        preflight_results+=("Claude Code" "⚠ Not found")
     fi
     
     # Check port 19223 for sandbox
     if [[ "$INSTALL_SANDBOX" == true ]]; then
-        step "Checking port 19223..."
         if lsof -Pi :19223 -sTCP:LISTEN -t >/dev/null 2>&1; then
-            warn "Port 19223 is already in use (another service may be running)"
-            log "WARN" "Port 19223 already in use"
+            warn "Port 19223 in use"
+            preflight_results+=("Port 19223" "⚠ In use")
         else
-            success "Port 19223 is available"
+            preflight_results+=("Port 19223" "✓ Available")
         fi
     fi
+    
+    # Show results in a grid
+    show_status_grid "${preflight_results[@]}"
     
     log "INFO" "Preflight checks passed"
     return 0
@@ -251,14 +259,6 @@ detect_installed_tools() {
         log "INFO" "AeroSpace detected"
     else
         DETECTED_AEROSPACE=false
-    fi
-    
-    # Detect other notification tools (warn about conflicts)
-    if [[ -f "$HOME/.hammerspoon/init.lua" ]] && grep -q "claude" "$HOME/.hammerspoon/init.lua" 2>/dev/null; then
-        DETECTED_HAMMERSPOON=true
-        log "INFO" "Hammerspoon with Claude config detected"
-    else
-        DETECTED_HAMMERSPOON=false
     fi
 }
 
@@ -742,12 +742,12 @@ test_notification() {
     info "Sending test notification..."
     
     if [[ -x "$NOTIFY_SCRIPT" ]]; then
+        # Show a brief table animation
+        table_animation 1 "Test notification sent!"
         CLAUDE_PROJECT_DIR="$HOME" "$NOTIFY_SCRIPT" "Test notification from agentpong" &
-        success "Test notification sent!"
-        dim "Click it to verify window focus works"
-        
-        # Wait a moment for user to see it
-        sleep 1
+        success "Check your notification center!"
+        dim "Click the notification to test window focus"
+        sleep 0.5
     else
         error "Cannot test - notify.sh not found or not executable"
     fi
@@ -760,93 +760,59 @@ test_notification() {
 run_wizard() {
     log "INFO" "Starting wizard mode"
     
-    header "agentpong" "Configuration Wizard"
+    header "Configuration Wizard"
     
-    # Check if gum is available for better UI
-    if command -v gum &> /dev/null; then
-        _STYLE_HAS_GUM=true
-    fi
-    
-    info "Welcome to the agentpong configuration wizard!"
+    info "Welcome! Let's set up your notifications."
     echo ""
     
-    # Custom notification messages
-    section "Notification Messages"
+    # Hook selection with toggles
+    section "Configure Hooks"
     
-    confirm "Customize notification messages?"
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        if [[ -x "$SRC_DIR/style.sh" ]]; then
-            source "$SRC_DIR/style.sh"
-            
-            local stop_msg=$(input "Stop hook message:" "Ready for input")
-            if [[ -n "$stop_msg" ]]; then
-                STOP_MESSAGE="$stop_msg"
-            fi
-            
-            local perm_msg=$(input "Permission hook message:" "Permission required")
-            if [[ -n "$perm_msg" ]]; then
-                PERMISSION_MESSAGE="$perm_msg"
-            fi
-        fi
-    fi
-    
-    # Hook selection
-    section "Hook Selection"
-    
-    confirm "Enable Stop hook (when Claude finishes a task)? (Y/n)"
-    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+    if toggle "Enable Stop hook (when Claude finishes)" "yes"; then
         ENABLE_STOP_HOOK=true
+        # Get custom message
+        local stop_msg=$(input "Stop hook message:" "Ready for input")
+        [[ -n "$stop_msg" ]] && STOP_MESSAGE="$stop_msg"
     else
         ENABLE_STOP_HOOK=false
     fi
     
-    confirm "Enable PermissionRequest hook (when permission dialog appears)? (Y/n)"
-    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+    if toggle "Enable Permission hook" "yes"; then
         ENABLE_PERMISSION_HOOK=true
+        local perm_msg=$(input "Permission hook message:" "Permission required")
+        [[ -n "$perm_msg" ]] && PERMISSION_MESSAGE="$perm_msg"
     else
         ENABLE_PERMISSION_HOOK=false
     fi
     
-    # Optional integrations
-    section "Optional Integrations"
+    # Optional integrations with multi-select
+    section "Select Integrations"
     
-    if [[ "$DETECTED_OPENCODE" == true ]]; then
-        confirm "OpenCode detected. Install OpenCode support? (Y/n)"
-        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-            INSTALL_OPENCODE=true
-        fi
-    else
-        confirm "Install OpenCode support (even though not detected)?"
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            INSTALL_OPENCODE=true
-        fi
-    fi
+    local integration_options=()
+    [[ "$DETECTED_OPENCODE" == true ]] && integration_options+=("OpenCode (detected)")
+    [[ "$DETECTED_SANDBOX" == true ]] && integration_options+=("claude-sandbox (detected)")
+    [[ "$DETECTED_OPENCODE" != true ]] && integration_options+=("OpenCode (install anyway)")
+    [[ "$DETECTED_SANDBOX" != true ]] && integration_options+=("claude-sandbox (install anyway)")
     
-    if [[ "$DETECTED_SANDBOX" == true ]]; then
-        confirm "claude-sandbox detected. Install sandbox support? (Y/n)"
-        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-            INSTALL_SANDBOX=true
-        fi
-    else
-        confirm "Install claude-sandbox support (even though not detected)?"
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            INSTALL_SANDBOX=true
-        fi
+    if [[ ${#integration_options[@]} -gt 0 ]]; then
+        local selected=$(choose_multi "Select integrations to install:" "${integration_options[@]}")
+        
+        [[ "$selected" == *"OpenCode"* ]] && INSTALL_OPENCODE=true
+        [[ "$selected" == *"sandbox"* ]] && INSTALL_SANDBOX=true
     fi
     
     # Keybinding suggestion
     if [[ "$DETECTED_AEROSPACE" == true ]]; then
-        section "Keybinding"
+        section "Keybinding Setup"
         info "AeroSpace detected!"
-        confirm "Suggest adding alt+n keybinding for notification cycling?"
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
+        if toggle "Suggest alt+n keybinding for cycling notifications?" "yes"; then
             SUGGEST_KEYBINDING=true
         fi
     fi
     
     echo ""
-    info "Configuration complete. Proceeding with installation..."
-    echo ""
+    info "Configuration complete! Starting installation..."
+    table_animation 1 "Let's go!"
 }
 
 # =============================================================================
@@ -856,15 +822,14 @@ run_wizard() {
 run_install() {
     log "INFO" "Starting installation"
     
-    if [[ "$WIZARD_MODE" != true ]]; then
-        header "agentpong" "Installer v${AGENTPONG_VERSION}"
-    fi
+    # Show pong-themed logo
+    show_logo "$AGENTPONG_VERSION"
     
     if [[ "$UPDATE_MODE" == true ]]; then
         info "Update mode: only updating changed files"
     fi
     
-    # Pre-flight checks
+    # Phase 1: Detection
     if ! run_preflight; then
         error "Pre-flight checks failed. Aborting."
         return 1
@@ -873,24 +838,13 @@ run_install() {
     # Detect installed tools
     detect_installed_tools
     
-    # Check for conflicting tools
-    if [[ "$DETECTED_HAMMERSPOON" == true ]]; then
-        warn "Hammerspoon with Claude config detected - potential conflict"
-        dim "Consider removing Hammerspoon integration to avoid duplicate notifications"
-        if [[ "$QUIET_MODE" != true && "$UPDATE_MODE" != true ]]; then
-            confirm "Continue anyway?"
-            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                return 1
-            fi
-        fi
-    fi
-    
     # Run wizard if requested
     if [[ "$WIZARD_MODE" == true ]]; then
         run_wizard
     fi
     
-    section "Installing dependencies"
+    # Phase 2: Dependencies
+    section "Installing Dependencies"
     
     # Check for jq
     if ! command -v jq &> /dev/null; then
@@ -911,7 +865,7 @@ run_install() {
             return 1
         fi
     else
-        success "jq is already installed"
+        success "jq already installed"
     fi
     
     # Check for terminal-notifier
@@ -932,7 +886,7 @@ run_install() {
             return 1
         fi
     else
-        success "terminal-notifier is already installed"
+        success "terminal-notifier already installed"
     fi
     
     # Install core files
@@ -1151,24 +1105,23 @@ run_install() {
         fi
     fi
     
-    # Show summary
-    section "Installation Summary"
+    # Show summary with status grid
+    section "Installation Complete"
     
-    list_item "Notifications" "Enabled"
-    if [[ "$DETECTED_AEROSPACE" == true ]]; then
-        list_item "Window focus" "Enabled (AeroSpace detected)"
-    else
-        list_item "Window focus" "Disabled (install AeroSpace for cross-workspace focus)"
-        dim "  brew install --cask nikitabobko/tap/aerospace"
-    fi
+    local summary_items=(
+        "Notifications" "✓ Enabled"
+        "Window Focus" "$([[ "$DETECTED_AEROSPACE" == true ]] && echo "✓ Enabled" || echo "○ Disabled")"
+    )
     
     if [[ "${INSTALL_OPENCODE:-false}" == true || -f "$OPENCODE_PLUGIN_FILE" ]]; then
-        list_item "OpenCode" "Enabled"
+        summary_items+=("OpenCode" "✓ Enabled")
     fi
     
     if [[ "${INSTALL_SANDBOX:-false}" == true || -f "$SANDBOX_PLIST" ]]; then
-        list_item "Sandbox" "Enabled"
+        summary_items+=("Sandbox" "✓ Enabled")
     fi
+    
+    show_status_grid "${summary_items[@]}"
     
     # Keybinding suggestion
     if [[ "${SUGGEST_KEYBINDING:-false}" == true && "$DETECTED_AEROSPACE" == true ]]; then
@@ -1184,28 +1137,25 @@ run_install() {
     fi
     
     if [[ "$DRY_RUN" == true ]]; then
-        banner "Dry-run complete!"
+        banner "Dry-run complete!" "info"
         info "No changes were made. Run without --dry-run to apply."
     else
-        banner "Installation complete!"
+        banner "🎉 Installation Complete!"
         
         echo ""
-        section "Usage"
+        section "Quick Start"
         
-        info "Cursor/VS Code: Notifications work automatically."
-        dim "Start a new Claude session and you'll get notifications"
-        dim "when Claude is ready for input."
+        cascade_success \
+            "Notifications enabled for Claude Code" \
+            "Click notifications to focus window" \
+            "Use 'pong.sh' to cycle notifications"
+        
         echo ""
-        info "iTerm2: Claude Code hooks don't work in standalone terminals."
-        dim "Set up iTerm Triggers instead:"
-        dim "  1. iTerm > Settings > Profiles > Advanced > Triggers > Edit"
-        dim "  2. Add trigger: Regex '^[[:space:]]*>' Action 'Run Command...'"
-        dim "     Parameters: ~/.claude/notify.sh \"Ready for input\""
+        info "Cursor/VS Code: Works automatically"
+        dim "Start a new Claude session to test"
         echo ""
-        info "Notification cycling: Bind pong.sh to a shortcut"
-        dim "  AeroSpace: alt+n is recommended (shown above)"
-        dim "  skhd: Add 'alt - n : ~/.claude/pong.sh' to ~/.skhdrc"
-        dim "  Raycast/Shortcuts: Run Shell Script -> ~/.claude/pong.sh"
+        info "iTerm2: Set up Triggers for standalone use"
+        dim "iTerm > Settings > Profiles > Advanced > Triggers"
     fi
     
     INSTALL_SUCCEEDED=true
@@ -1489,33 +1439,30 @@ main() {
     if is_remote_run; then
         init_remote_styling
         
-        # Show banner
+        # Show pong-themed logo
         echo ""
-        echo -e "${_C_BOLD}${_C_BRAND}    ___    _       _       ___   ___   _   _  __      ${_C_RESET}"
-        echo -e "${_C_BOLD}${_C_BRAND}   / _ \\  / \\     | |     / _ \\ / _ \\ | \\ | |/ /      ${_C_RESET}"
-        echo -e "${_C_BOLD}${_C_BRAND}  / /_\\/ / _ \\    | |    / /_\\\\/ /_\\\\/|  \\| / /_      ${_C_RESET}"
-        echo -e "${_C_BOLD}${_C_BRAND} / /_\\\\/ ___ \\   | |___/ /_\\\\/ /_\\\\ \\| |\\  / /_\\\\     ${_C_RESET}"
-        echo -e "${_C_BOLD}${_C_BRAND} \\____/\\/   \\_/   |_____\\____/\\____/ |_| \\_/____/     ${_C_RESET}"
-        echo -e "${_C_MUTED}                                                      ${_C_RESET}"
-        echo -e "${_C_BOLD}${_C_BRAND}  macOS notifications for Claude Code & OpenCode   ${_C_RESET}"
+        echo -e "${_C_BRAND}○ ════════════════════════════ ○${_C_RESET}"
+        echo -e "${_C_PINK}        PING    ○    PONG${_C_RESET}"
+        echo -e "${_C_BLUE}              v${AGENTPONG_VERSION}${_C_RESET}"
+        echo -e "${_C_CYAN}     ○ ════════════════════════════ ○${_C_RESET}"
         echo ""
         
         # Quick OS check
         if [[ "$OSTYPE" != "darwin"* ]]; then
-            echo -e "${_C_ERROR}✗ This tool only works on macOS.${_C_RESET}"
+            echo -e "  ${_C_ERROR}✗ This tool only works on macOS.${_C_RESET}"
             exit 1
         fi
         
-        echo -e "${_C_MUTED}→ Downloading agentpong from GitHub...${_C_RESET}"
+        echo -e "  ${_C_MUTED}→ Downloading agentpong from GitHub...${_C_RESET}"
         
         EXTRACTED_DIR=$(download_repo)
         
         if [[ -z "$EXTRACTED_DIR" ]]; then
-            echo -e "${_C_ERROR}✗ Failed to download agentpong${_C_RESET}"
+            echo -e "  ${_C_ERROR}✗ Failed to download agentpong${_C_RESET}"
             exit 1
         fi
         
-        echo -e "${_C_SUCCESS}✓ Download complete${_C_RESET}"
+        echo -e "  ${_C_SUCCESS}✓ Download complete${_C_RESET}"
         echo ""
         
         # Re-execute from downloaded copy with all arguments

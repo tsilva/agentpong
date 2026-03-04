@@ -129,9 +129,6 @@ OPENCODE_PLUGIN_FILE="$HOME/.config/opencode/plugins/agentpong.ts"
 OPENCODE_CONFIG_SETTINGS="$HOME/.config/opencode/settings.json"
 
 # Legacy paths
-HAMMERSPOON_DIR="$HOME/.hammerspoon"
-HAMMERSPOON_INIT="$HAMMERSPOON_DIR/init.lua"
-HAMMERSPOON_MODULE="$HAMMERSPOON_DIR/claude-notify.lua"
 
 # =============================================================================
 # MAIN UNINSTALL
@@ -230,12 +227,6 @@ main() {
     if [[ -f "$OPENCODE_PLUGIN_FILE" ]]; then
         list_item "Remove" "OpenCode plugin"
         items_to_remove+=("$OPENCODE_PLUGIN_FILE")
-    fi
-
-    # Check legacy Hammerspoon
-    if [[ -f "$HAMMERSPOON_MODULE" ]]; then
-        list_item "Remove" "$HAMMERSPOON_MODULE"
-        items_to_remove+=("$HAMMERSPOON_MODULE")
     fi
 
     # Validate there's something to remove

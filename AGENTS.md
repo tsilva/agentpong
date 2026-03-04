@@ -44,10 +44,10 @@ agentpong/
 
 ## Key Implementation Details
 
-The system uses AeroSpace because:
-- macOS Sequoia 15.x broke Hammerspoon's `hs.spaces.gotoSpace()` API
+The system uses AeroSpace for reliable window focusing:
 - AppleScript's `AXRaise` and URL schemes (`cursor://`, `vscode://`) cannot switch between macOS Spaces
-- AeroSpace uses its own virtual workspace abstraction that works reliably on Sequoia without requiring SIP to be disabled
+- AeroSpace uses its own virtual workspace abstraction that works reliably on macOS 14+ (Sequoia)
+- Falls back to AppleScript if AeroSpace is unavailable (no cross-workspace focus)
 
 Flow:
 1. Claude Code `Stop` hook fires when the AI finishes a task, or `PermissionRequest` hook fires when permission is needed. For OpenCode, the `session.idle` or `permission.asked` plugin event fires instead.
