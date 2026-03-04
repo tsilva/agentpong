@@ -20,7 +20,7 @@
 Install with one command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install-remote.sh | bash
+curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install.sh | bash
 ```
 
 The installer will:
@@ -32,7 +32,7 @@ The installer will:
 
 **Alternative:** Download first to inspect, then run:
 ```bash
-curl -fsSL -o install-agentpong.sh https://raw.githubusercontent.com/tsilva/agentpong/main/install-remote.sh
+curl -fsSL -o install-agentpong.sh https://raw.githubusercontent.com/tsilva/agentpong/main/install.sh
 # Review the script...
 bash install-agentpong.sh
 ```
@@ -78,7 +78,7 @@ bash install-agentpong.sh
 ### Quick Install (Recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install-remote.sh | bash
+curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install.sh | bash
 ```
 
 The installer will:
@@ -90,7 +90,7 @@ The installer will:
 
 **Security-conscious?** Download first to inspect:
 ```bash
-curl -fsSL -o install-agentpong.sh https://raw.githubusercontent.com/tsilva/agentpong/main/install-remote.sh
+curl -fsSL -o install-agentpong.sh https://raw.githubusercontent.com/tsilva/agentpong/main/install.sh
 # Review the script...
 bash install-agentpong.sh
 ```
@@ -107,7 +107,7 @@ cd agentpong
 
 This method is useful for:
 - Contributing to agentpong
-- Installing from a specific branch (`./install.sh --branch develop`)
+- Installing from a specific branch (edit the script to change `BRANCH="main"`)
 - Modifying scripts before installation
 - Running with `--force` flag to reinstall
 
@@ -120,7 +120,7 @@ To update to the latest version, simply run the install command again. The insta
 
 Force a complete reinstall:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install-remote.sh | bash -s -- --force
+curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install.sh | bash -s -- --force
 ```
 
 ### Post-install (with AeroSpace)

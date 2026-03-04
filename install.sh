@@ -3,49 +3,130 @@
 # agentpong - Installation Script
 # Version: 1.0.0
 #
-# Idempotent installation script that can be run multiple times safely.
-# Checks for existing installations and only updates what has changed.
+# Idempotent installation script that works both remotely (via curl) and locally.
+# When run via curl, it downloads the repository first, then executes the install.
+# When run locally, it uses the existing source files.
+#
+# Usage:
+#   Remote:  curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install.sh | bash
+#   Local:   ./install.sh
 #
 
 set -e
 
 # Version tracking for idempotency
 AGENTPONG_VERSION="1.0.0"
+REPO_URL="https://github.com/tsilva/agentpong"
 FORCE_INSTALL=false
+BRANCH="main"
+TEMP_DIR=""
 
-# Parse command line arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --force|-f)
-            FORCE_INSTALL=true
-            shift
-            ;;
-        --version|-v)
-            echo "agentpong installer v$AGENTPONG_VERSION"
-            exit 0
-            ;;
-        --help|-h)
-            cat << 'EOF'
-agentpong Installer
+# Check if we're running via curl pipe (stdin not a TTY, no local files)
+# or if the script is being piped/redirected
+is_remote_run() {
+    # If stdin is not a TTY, likely running via curl
+    if [[ ! -t 0 ]]; then
+        return 0
+    fi
+    # If script directory doesn't contain src/ subdirectory, we're not in the repo
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [[ ! -d "$script_dir/src" ]]; then
+        return 0
+    fi
+    return 1
+}
 
-Usage:
-    ./install.sh [options]
+# Download and extract the repository
+download_repo() {
+    TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/agentpong.XXXXXX")
+    
+    # Download tarball
+    if ! curl -fsSL "${REPO_URL}/archive/refs/heads/${BRANCH}.tar.gz" -o "$TEMP_DIR/agentpong.tar.gz" 2>/dev/null; then
+        return 1
+    fi
+    
+    # Extract
+    tar -xzf "$TEMP_DIR/agentpong.tar.gz" -C "$TEMP_DIR"
+    
+    # Find extracted directory
+    local extracted_dir
+    extracted_dir=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "agentpong-*" | head -1)
+    
+    if [[ -z "$extracted_dir" ]]; then
+        return 1
+    fi
+    
+    echo "$extracted_dir"
+}
 
-Options:
-    --force, -f      Force reinstall even if already up to date
-    --version, -v    Show installer version
-    --help, -h       Show this help message
+# Cleanup function
+cleanup() {
+    if [[ -n "$TEMP_DIR" && -d "$TEMP_DIR" ]]; then
+        rm -rf "$TEMP_DIR"
+    fi
+}
 
-EOF
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1" >&2
-            echo "Run with --help for usage information" >&2
-            exit 1
-            ;;
-    esac
-done
+trap cleanup EXIT
+
+# If running remotely, download and re-execute
+if is_remote_run; then
+    # Minimal output styling for remote run (before we have the style library)
+    _C_BOLD='\033[1m'
+    _C_RESET='\033[0m'
+    _C_BRAND='\033[38;5;141m'
+    _C_SUCCESS='\033[38;5;114m'
+    _C_ERROR='\033[38;5;203m'
+    _C_MUTED='\033[38;5;244m'
+    
+    echo ""
+    echo -e "${_C_BOLD}${_C_BRAND}    ___    _       _       ___   ___   _   _  __      ${_C_RESET}"
+    echo -e "${_C_BOLD}${_C_BRAND}   / _ \  / \     | |     / _ \ / _ \ | \ | |/ /      ${_C_RESET}"
+    echo -e "${_C_BOLD}${_C_BRAND}  / /_\/ / _ \    | |    / /_\\// /_\\/|  \| / /_      ${_C_RESET}"
+    echo -e "${_C_BOLD}${_C_BRAND} / /_\\\/ ___ \   | |___/ /_\\\/ /_\\ \| |\  / /_\\     ${_C_RESET}"
+    echo -e "${_C_BOLD}${_C_BRAND} \____/\/   \_/   |_____\____/\____/ |_| \_/____/     ${_C_RESET}"
+    echo -e "${_C_MUTED}                                                      ${_C_RESET}"
+    echo -e "${_C_BOLD}${_C_BRAND}  macOS notifications for Claude Code & OpenCode   ${_C_RESET}"
+    echo ""
+    
+    # Check for macOS
+    if [[ "$OSTYPE" != "darwin"* ]]; then
+        echo -e "${_C_ERROR}✗ This tool only works on macOS.${_C_RESET}"
+        exit 1
+    fi
+    
+    echo -e "${_C_MUTED}→ Downloading agentpong from GitHub...${_C_RESET}"
+    
+    EXTRACTED_DIR=$(download_repo)
+    
+    if [[ -z "$EXTRACTED_DIR" ]]; then
+        echo -e "${_C_ERROR}✗ Failed to download agentpong from GitHub${_C_RESET}"
+        echo -e "${_C_MUTED}  Please check your internet connection and try again.${_C_RESET}"
+        exit 1
+    fi
+    
+    echo -e "${_C_SUCCESS}✓ Download complete${_C_RESET}"
+    echo ""
+    
+    # Check if already installed
+    if [[ -f "$HOME/.claude/notify.sh" ]] && [[ "$FORCE_INSTALL" != "true" ]]; then
+        echo -e "${_C_MUTED}→ agentpong appears to be already installed${_C_RESET}"
+        echo -e "${_C_MUTED}  Use --force to reinstall${_C_RESET}"
+        echo ""
+    fi
+    
+    # Re-execute the install script from the downloaded copy
+    # This will run the local section below with proper paths
+    echo -e "${_C_MUTED}→ Running installer...${_C_RESET}"
+    echo ""
+    
+    cd "$EXTRACTED_DIR"
+    exec bash "$EXTRACTED_DIR/install.sh" "$@"
+fi
+
+# =============================================================================
+# LOCAL INSTALLATION SECTION
+# This runs when the script is executed from within the repository
+# =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC_DIR="$SCRIPT_DIR/src"
@@ -80,6 +161,41 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
     error "This tool only works on macOS."
     exit 1
 fi
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --force|-f)
+            FORCE_INSTALL=true
+            shift
+            ;;
+        --version|-v)
+            echo "agentpong installer v$AGENTPONG_VERSION"
+            exit 0
+            ;;
+        --help|-h)
+            cat << 'EOF'
+agentpong Installer
+
+Usage:
+    curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install.sh | bash
+    ./install.sh [options]
+
+Options:
+    --force, -f      Force reinstall even if already up to date
+    --version, -v    Show installer version
+    --help, -h       Show this help message
+
+EOF
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            echo "Run with --help for usage information" >&2
+            exit 1
+            ;;
+    esac
+done
 
 # Function to check if a file needs updating
 # Returns 0 if file needs update, 1 if identical
