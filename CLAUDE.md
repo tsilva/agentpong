@@ -4,13 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-agentpong is a macOS developer workspace management system + AI agent notification system, powered by AeroSpace. It organizes Cursor windows into numbered AeroSpace workspaces, sends desktop notifications when AI agents need attention, and focuses the correct window when you respond -- even across workspaces.
+agentpong is an opinionated macOS workspace for supervising multiple AI coding agents in parallel, powered by AeroSpace. It organizes Cursor windows into numbered workspaces, sends desktop notifications when agents finish or need permission, and focuses the correct window when you respond -- even across workspaces. The README frames this as "the supervisor pattern": delegate tasks to parallel Claude Code instances, switch away, get notified, jump back.
 
 ## Core Capabilities
 
 1. **Workspace Management** -- AeroSpace config with keybindings for workspace switching (alt+1..9), window organization (alt+s), and project switching via Alfred (alt+p)
 2. **AI Agent Notifications** -- Desktop notifications via terminal-notifier when Claude Code, OpenCode, or claude-sandbox agents finish tasks or need permission
 3. **Window Focusing** -- Click a notification or press alt+n to jump directly to the right Cursor/VS Code window across workspaces
+
+## Ecosystem
+
+Companion projects that enhance the supervisor workflow:
+- **[claude-skills](https://github.com/tsilva/claude-skills)** -- Reusable skills for Claude Code
+- **[claudebox](https://github.com/tsilva/claudebox)** -- Sandboxed Claude Code execution (no permission prompts)
+- **[capture](https://github.com/tsilva/capture)** -- Instant thought capture to Gmail
+- **[claudebridge](https://github.com/tsilva/claudebridge)** -- OpenAI-compatible API bridge for Claude Max
+- **[gita](https://github.com/nosarthur/gita)** -- Multi-repo git status overview
 
 ## Supported Tools
 
@@ -29,7 +38,7 @@ agentpong/
 │   ├── focus-window.sh                    # Notification click → focus by workspace name
 │   ├── pong.sh                            # Notification cycling (alt+n keybinding)
 │   ├── style.sh                           # Terminal styling library
-│   ├── sort-workspaces.sh                 # Organize Cursor windows by priority (alt+s)
+│   ├── sort-workspaces.sh                 # Organize Cursor windows (alt+s)
 │   ├── open-project.sh                    # Alfred → focus by window ID or open project
 │   ├── list-all-repos.sh                  # Alfred Script Filter: list all repos
 │   ├── toggle-animations.sh               # Disable/enable macOS animations
@@ -41,7 +50,6 @@ agentpong/
 │       └── agentpong.ts                   # OpenCode TypeScript plugin
 ├── config/                                 # Configuration templates
 │   ├── aerospace.toml                     # AeroSpace config (→ ~/.aerospace.toml)
-│   ├── cursor-projects.txt.example        # Project priority list template
 │   └── com.agentpong.sandbox.plist.template
 ├── alfred/                                 # Alfred workflows
 │   └── cursor-project-switcher/
@@ -66,7 +74,6 @@ Scripts are installed to different locations based on their purpose:
 | `src/toggle-animations.sh` | `~/.config/aerospace/toggle-animations.sh` | Animation toggle |
 | `src/alfred-search.sh` | `~/.config/aerospace/alfred-search.sh` | Alfred launcher |
 | `config/aerospace.toml` | `~/.aerospace.toml` | AeroSpace config |
-| `config/cursor-projects.txt.example` | `~/.config/aerospace/cursor-projects.txt` | Project priority |
 | `alfred/cursor-project-switcher/` | Alfred workflows dir | Alfred workflow |
 
 ## Key Implementation Details
@@ -77,8 +84,6 @@ AeroSpace is a core requirement (no AppleScript fallback):
 - If AeroSpace binary is not found, focus-window.sh exits with an error
 
 **`list-all-repos.sh`** uses `${AGENTPONG_REPOS_DIR:-$HOME/repos}` to locate repositories. Users can override this with the environment variable.
-
-**`cursor-projects.txt`** is user data -- preserved on update, prompted before removal on uninstall.
 
 **Alfred** is optional paid software -- detected but never required.
 
@@ -109,10 +114,10 @@ Test installation:
 - Keep `README.md` up to date with any significant project changes
 - AeroSpace is a hard requirement -- do not add AppleScript fallbacks
 - Alfred integration must remain optional
-- `cursor-projects.txt` is user data -- never overwrite if it exists
 - Use `dry_aware_*` wrappers for all file operations in install/uninstall scripts
 - Use `needs_update()` SHA256 check for idempotent file copies
 - Use `section()`/`step()`/`success()` from style.sh for installer output
 - Use `add_rollback()` in install.sh for any new operations that should be reversible on failure
 - Run `bash -n <script>` to syntax-check shell scripts after modifications
 - CLAUDE.md and AGENTS.md are separate files (not symlinked) -- update both when project scope changes
+- The README supervisor pattern narrative is the lead story -- keep it prominent when editing

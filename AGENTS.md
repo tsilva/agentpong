@@ -4,15 +4,15 @@ This file provides guidance to AI agents when working with code in this reposito
 
 ## Project Overview
 
-agentpong is a macOS developer workspace management system + AI agent notification system, powered by AeroSpace. It organizes Cursor windows into numbered AeroSpace workspaces, sends desktop notifications when AI agents need attention, and focuses the correct window when you respond -- even across workspaces.
+agentpong is an opinionated macOS workspace for supervising multiple AI coding agents in parallel, powered by AeroSpace. It organizes Cursor windows into numbered workspaces, sends desktop notifications when agents finish or need permission, and focuses the correct window when you respond -- even across workspaces.
 
 ## Architecture
 
 The system has two main subsystems:
 
-### 1. Workspace Management (from aerospace-setup)
+### 1. Workspace Management
 - `config/aerospace.toml` -- AeroSpace tiling window manager configuration
-- `src/sort-workspaces.sh` -- Organizes Cursor windows into numbered workspaces by project priority
+- `src/sort-workspaces.sh` -- Organizes Cursor windows into numbered workspaces (alt+s)
 - `src/open-project.sh` -- Alfred workflow action: focus window by ID or open new project
 - `src/list-all-repos.sh` -- Alfred script filter: lists all repos with open/closed status
 - `src/toggle-animations.sh` -- Disables/enables macOS animations for snappier workspace switching
@@ -31,6 +31,5 @@ The system has two main subsystems:
 ## Key Decisions
 - AeroSpace is a hard requirement (no AppleScript fallback)
 - Alfred is optional (detected, not required)
-- `cursor-projects.txt` is user data -- never overwrite
 - `~/.aerospace.toml` prompts before overwrite (user may have customized)
 - `AGENTPONG_REPOS_DIR` env var overrides default repo scan path

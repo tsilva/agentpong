@@ -8,9 +8,9 @@
   [![AeroSpace](https://img.shields.io/badge/AeroSpace-required-8B5CF6?logo=apple)](https://github.com/nikitabobko/AeroSpace)
   [![License](https://img.shields.io/github/license/tsilva/agentpong)](LICENSE)
 
-  **🏓 macOS developer workspace management + AI agent notifications, powered by AeroSpace 🔔**
+  **🎛️ Supervise multiple AI coding agents in parallel — organized workspaces, instant switching, desktop notifications 🏓**
 
-  [Quick Start](#-quick-start) · [Features](#-features) · [Installation](#-installation) · [Usage](#-usage) · [How It Works](#-how-it-works) · [Troubleshooting](#-troubleshooting)
+  [Quick Start](#-quick-start) · [Supervisor Pattern](#-the-supervisor-pattern) · [Features](#-features) · [Ecosystem](#-ecosystem) · [Installation](#-installation) · [Usage](#-usage) · [How It Works](#-how-it-works) · [Troubleshooting](#-troubleshooting)
 </div>
 
 ---
@@ -34,11 +34,11 @@ The installer will:
 
 ## Overview
 
-**The Pain:** You juggle multiple Cursor windows across workspaces while AI agents work in the background. You keep switching tabs to check if they're done -- or worse, you miss a permission prompt and they sit idle for minutes.
+**The Pain:** Running one Claude Code session is straightforward. Running *several* in parallel — each working on a different project — quickly becomes chaos. Which task finished? Which window was that? You keep switching tabs to check, or worse, you miss a permission prompt and an agent sits idle for minutes.
 
-**The Solution:** agentpong gives you an opinionated macOS workspace system built on AeroSpace. Your Cursor windows get organized into numbered workspaces by priority. When an AI agent finishes or needs permission, you get a desktop notification. One click (or `alt+n`) jumps you directly to the right window.
+**The Solution:** agentpong turns you into a **supervisor of AI coding agents**. Your Cursor windows get organized into numbered workspaces by priority. When an agent finishes or needs permission, you get a desktop notification. One click (or `alt+n`) jumps you directly to the right window — even across workspaces.
 
-**The Result:** Zero tab-switching. Zero missed prompts. Organized workspaces. Stay in flow while your agents work.
+**The Result:** Zero tab-switching. Zero missed prompts. Organized workspaces. Instead of babysitting one session, you delegate tasks, switch away, and return when notified. This is the supervisor pattern.
 
 <div align="center">
 
@@ -48,15 +48,90 @@ The installer will:
 
 </div>
 
+## 🎛️ The Supervisor Pattern
+
+```mermaid
+graph LR
+    subgraph You["You (Supervisor)"]
+        Review["Review & Direct"]
+    end
+
+    subgraph Agents["Claude Code Instances"]
+        A1["Project A"]
+        A2["Project B"]
+        A3["Project C"]
+    end
+
+    Review -->|"Alt+2"| A1
+    Review -->|"Alt+3"| A2
+    Review -->|"Alt+4"| A3
+
+    A1 -->|"Done!"| Review
+    A2 -->|"Needs input"| Review
+    A3 -->|"Working..."| Review
+```
+
+1. **Delegate** — Give Claude Code a task and switch away (`alt+3` to Project B)
+2. **Multiplex** — Work on another project while the first one runs
+3. **Get notified** — Desktop alert when Claude finishes or needs permission
+4. **Context switch** — Click notification or press `alt+2` to jump back instantly
+5. **Review & repeat** — Check output, give next task, switch to another project
+
+This turns waiting time into productive time. While Claude thinks through a complex refactor in Project A, you're reviewing changes in Project B and delegating tests in Project C.
+
+### What Are Workspaces?
+
+Workspaces are virtual desktops managed by [AeroSpace](https://github.com/nikitabobko/AeroSpace), a tiling window manager for macOS. They're similar to macOS Spaces but with key differences:
+
+- **Instant switching** — No slide animations; workspaces change immediately
+- **Keyboard-driven** — `alt+1` through `alt+9` switches directly to any workspace
+- **One app per workspace** — Each Claude Code instance gets its own dedicated space
+- **Fullscreen by default** — Every window is maximized, zero distractions
+
+This is what makes the supervisor pattern practical — switching between projects takes milliseconds, not seconds.
+
+### Workspace Layout
+
+| Workspace | Keybinding | Purpose |
+|-----------|------------|---------|
+| 1 | `alt+1` | Browser, notes, documentation |
+| 2-9 | `alt+2` - `alt+9` | One Cursor/VS Code window per workspace (each running Claude Code) |
+
+High-priority projects get lower numbers for faster access.
+
 ## ✨ Features
 
-- **🖥️ Workspace management** -- AeroSpace-powered numbered workspaces with `alt+1..9` switching
-- **📋 Window organization** -- Press `alt+s` to sort Cursor windows by project priority
-- **🔔 Smart notifications** -- Alerts when AI agents finish tasks or need permission
-- **🎯 Cross-workspace focus** -- Click notification or press `alt+n` to jump to the right window
-- **🔍 Project switcher** -- Alfred workflow (`alt+p`) to search and switch between projects
-- **⚡ Performance tuning** -- Optional macOS animation disabling for snappier workspace switching
-- **🤖 Multi-tool support** -- Claude Code, OpenCode, and claude-sandbox containers
+- **🖥️ Workspace management** — AeroSpace-powered numbered workspaces with `alt+1..9` switching
+- **📋 Window organization** — Press `alt+s` to sort Cursor windows into numbered workspaces
+- **🔔 Smart notifications** — Alerts when AI agents finish tasks or need permission
+- **🎯 Cross-workspace focus** — Click notification or press `alt+n` to jump to the right window
+- **🔍 Project switcher** — Alfred workflow (`alt+p`) to search and switch between projects
+- **⚡ Performance tuning** — Optional macOS animation disabling for snappier workspace switching
+- **🤖 Multi-tool support** — Claude Code, OpenCode, and claude-sandbox containers
+
+## 📋 Example Session
+
+Supervising three projects in parallel:
+
+1. **`alt+2`** — Open Claude Code in my-api-backend: "Add pagination to the /users endpoint"
+2. **`alt+3`** — Switch to my-web-frontend: "Update the user list component to handle paginated responses"
+3. **`alt+4`** — Switch to my-mobile-app: "Write unit tests for the login flow"
+4. **Desktop notification:** "my-api-backend — Ready for input" — **click** to jump back
+5. **`alt+2`** — Review the pagination changes, then: "Now add rate limiting to that endpoint"
+6. **`alt+n`** — Another notification pending — jump to my-mobile-app to review tests
+7. **Repeat** — delegate, switch, review, delegate
+
+## 🧩 Ecosystem
+
+agentpong is the core of a broader workflow. These companion projects enhance the supervisor pattern:
+
+| Project | Description |
+|---------|-------------|
+| [claude-skills](https://github.com/tsilva/claude-skills) | Reusable skills for Claude Code — README authoring, logo generation, skill creation |
+| [claudebox](https://github.com/tsilva/claudebox) | Sandboxed Claude Code execution — full autonomy, no permission prompts |
+| [capture](https://github.com/tsilva/capture) | Instant thought capture to Gmail — dump ideas without breaking flow |
+| [claudebridge](https://github.com/tsilva/claudebridge) | OpenAI-compatible API bridge for Claude Max subscriptions |
+| [gita](https://github.com/nosarthur/gita) | Multi-repo git status overview — bird's eye view across all projects |
 
 ## 📋 Requirements
 
@@ -66,13 +141,13 @@ The installer will:
 
 ### Installed Automatically
 
-- **[AeroSpace](https://github.com/nikitabobko/AeroSpace)** -- Tiling window manager for workspace management and cross-workspace focus (core requirement)
-- **[terminal-notifier](https://github.com/julienXX/terminal-notifier)** -- macOS desktop notifications
-- **[jq](https://jqlang.github.io/jq/)** -- JSON processor for settings configuration
+- **[AeroSpace](https://github.com/nikitabobko/AeroSpace)** — Tiling window manager for workspace management and cross-workspace focus (core requirement)
+- **[terminal-notifier](https://github.com/julienXX/terminal-notifier)** — macOS desktop notifications
+- **[jq](https://jqlang.github.io/jq/)** — JSON processor for settings configuration
 
 ### Optional
 
-- **[Alfred](https://www.alfredapp.com/)** -- Project switcher workflow (detected automatically, never required)
+- **[Alfred](https://www.alfredapp.com/)** — Project switcher workflow (detected automatically, never required)
 
 ## 🚀 Installation
 
@@ -112,7 +187,7 @@ cd agentpong
 
 ### Reinstalling / Updating
 
-Run the install command again. The installer is **idempotent** -- it skips unchanged files and only updates what's needed.
+Run the install command again. The installer is **idempotent** — it skips unchanged files and only updates what's needed.
 
 Force a complete reinstall:
 ```bash
@@ -123,8 +198,7 @@ curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install.sh | 
 
 1. AeroSpace should start automatically (configured with `start-at-login = true`)
 2. Grant Accessibility permissions when prompted
-3. Edit `~/.config/aerospace/cursor-projects.txt` to set your project priority order
-4. Press `alt+s` to organize your Cursor windows
+3. Press `alt+s` to organize your Cursor windows
 
 ## 💡 Usage
 
@@ -134,24 +208,11 @@ curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install.sh | 
 |----------|--------|
 | `alt+1..9` | Switch to workspace 1-9 |
 | `alt+shift+1..9` | Move window to workspace 1-9 |
-| `alt+s` | Sort/organize Cursor windows by priority |
+| `alt+s` | Sort/organize Cursor windows |
 | `alt+n` | Focus next pending notification |
 | `alt+p` | Open project switcher (Alfred) |
 | `alt+f` | Toggle fullscreen |
 | `alt+left/right` | Previous/next workspace |
-
-### Project Priority
-
-Edit `~/.config/aerospace/cursor-projects.txt` to control workspace assignment order:
-
-```
-my-main-project      # → workspace 2
-side-project         # → workspace 3
-experiments          # → workspace 4
-# Unlisted projects get subsequent workspaces
-```
-
-Press `alt+s` to apply the ordering.
 
 ### Claude Code (Cursor / VS Code)
 
@@ -163,7 +224,7 @@ Click the notification to focus the IDE window.
 
 ### OpenCode
 
-The OpenCode plugin hooks into `session.idle` and `permission.asked` events -- no extra configuration needed after install. Notifications appear with "OpenCode" prefix.
+The OpenCode plugin hooks into `session.idle` and `permission.asked` events — no extra configuration needed after install. Notifications appear with "OpenCode" prefix.
 
 ### Alfred Project Switcher
 
@@ -217,9 +278,7 @@ Claude Code hooks don't fire in standalone terminals. Set up iTerm Triggers inst
 1. `aerospace.toml` defines keybindings and auto-assigns apps to workspaces
 2. `alt+s` triggers `sort-workspaces.sh` which:
    - Unminimizes all Cursor windows
-   - Reads priority order from `cursor-projects.txt`
    - Moves windows to numbered workspaces (starting at 2)
-   - Unmatched windows get subsequent workspaces
 
 ### Why AeroSpace?
 
@@ -301,9 +360,8 @@ brew uninstall terminal-notifier
 
 ### alt+s doesn't organize windows
 
-1. Check `~/.config/aerospace/cursor-projects.txt` exists and has entries
-2. Check scripts are installed: `ls ~/.config/aerospace/sort-workspaces.sh`
-3. Check AeroSpace config is loaded: `aerospace reload-config`
+1. Check scripts are installed: `ls ~/.config/aerospace/sort-workspaces.sh`
+2. Check AeroSpace config is loaded: `aerospace reload-config`
 
 ### Hooks don't fire
 

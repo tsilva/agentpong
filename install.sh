@@ -1237,9 +1237,6 @@ run_install() {
         info "Cursor/VS Code: Works automatically"
         dim "Start a new Claude session to test"
         echo ""
-        info "Edit ~/.config/aerospace/cursor-projects.txt to set project priority"
-        dim "Then press alt+s to organize windows by priority"
-        echo ""
         info "iTerm2: Set up Triggers for standalone use"
         dim "iTerm > Settings > Profiles > Advanced > Triggers"
     fi
@@ -1356,21 +1353,6 @@ install_aerospace_config() {
             warn "Source script not found: $script"
         fi
     done
-
-    # Create cursor-projects.txt from example if it doesn't exist
-    step "Checking cursor-projects.txt..."
-    if [[ -f "$CURSOR_PROJECTS_DST" ]]; then
-        dim "cursor-projects.txt already exists (preserving your project list)"
-    else
-        if [[ -f "$CURSOR_PROJECTS_EXAMPLE" ]]; then
-            dry_aware_copy "$CURSOR_PROJECTS_EXAMPLE" "$CURSOR_PROJECTS_DST" "cursor-projects.txt"
-            # Don't make the config file executable
-            if [[ "$DRY_RUN" == false ]]; then
-                chmod -x "$CURSOR_PROJECTS_DST"
-            fi
-            success "Created cursor-projects.txt (edit to set your project priority order)"
-        fi
-    fi
 
     # Reload AeroSpace config
     if [[ "$DRY_RUN" == false ]]; then
@@ -1719,8 +1701,6 @@ main() {
         "toggle-animations.sh"
         "alfred-search.sh"
     )
-    CURSOR_PROJECTS_EXAMPLE="$CONFIG_DIR/cursor-projects.txt.example"
-    CURSOR_PROJECTS_DST="$AEROSPACE_CONFIG_DIR/cursor-projects.txt"
 
     # Alfred paths
     ALFRED_DIR="$SCRIPT_DIR/alfred"
