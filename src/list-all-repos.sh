@@ -61,10 +61,23 @@ for search_dir in "$REPOS_DIR"/*/ "$REPOS_DIR"/.[!.]*/; do
             icon_json=""
         fi
 
+        # Workspace display name may differ from directory name
+        workspace_name=""
+        workspace_file="$repo_dir/${repo_name}.code-workspace"
+        if [ -f "$workspace_file" ]; then
+            workspace_name="$(basename "$workspace_file" .code-workspace)"
+        else
+            # Check for any .code-workspace file with a different name
+            for wf in "$repo_dir"/*.code-workspace; do
+                [ -f "$wf" ] && workspace_name="$(basename "$wf" .code-workspace)" && break
+            done
+        fi
+
         # Check if this repo has an open Cursor window
         found=0
         for i in "${!open_projects[@]}"; do
-            if [ "${open_projects[$i]}" = "$repo_name" ]; then
+            if [ "${open_projects[$i]}" = "$repo_name" ] || \
+               { [ -n "$workspace_name" ] && [ "${open_projects[$i]}" = "$workspace_name" ]; }; then
                 wid="${open_window_ids[$i]}"
                 ws="${open_workspaces[$i]}"
                 items="${items}0|${ws}|{\"title\":\"${repo_escaped}\",\"subtitle\":\"Workspace ${ws}\",\"arg\":\"open|${wid}\",\"match\":\"${repo_escaped}\"${icon_json}}
