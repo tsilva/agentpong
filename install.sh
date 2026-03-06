@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# agentpong - Kickass Installation Script v2.0.0
-# Version: 2.0.0
+# agentpong - Kickass Installation Script v3.0.0
+# Version: 3.0.0
 #
-# The ultimate macOS notification installer for Claude Code & OpenCode.
+# macOS developer workspace management + AI agent notifications, powered by AeroSpace.
 # Features: dry-run, uninstall, auto-detection, health checks, rollback, wizard mode.
 #
 # Usage:
@@ -28,7 +28,7 @@ set -e
 # VERSION & CONFIGURATION
 # =============================================================================
 
-AGENTPONG_VERSION="2.0.0"
+AGENTPONG_VERSION="3.0.0"
 REPO_URL="https://github.com/tsilva/agentpong"
 BRANCH="main"
 TEMP_DIR=""
@@ -195,6 +195,7 @@ run_preflight() {
     scan_args+=("terminal-notifier" "command -v terminal-notifier >/dev/null 2>&1 && echo 'Installed' || return 1")
     scan_args+=("jq" "command -v jq >/dev/null 2>&1 && jq --version 2>/dev/null | sed 's/jq-//' || return 1")
     scan_args+=("AeroSpace" "{ command -v aerospace >/dev/null 2>&1 || [[ -x /opt/homebrew/bin/aerospace ]] || [[ -x /usr/local/bin/aerospace ]]; } && { aerospace --version 2>/dev/null | head -1 || echo 'Installed'; } || return 1")
+    scan_args+=("Alfred" "{ [[ -d \"\$HOME/Library/Application Support/Alfred\" ]] || [[ -d \"/Applications/Alfred 5.app\" ]]; } && echo 'Detected' || return 1")
     scan_args+=("OpenCode" "{ [[ -d \"\$HOME/.opencode\" ]] || [[ -d \"\$HOME/.config/opencode\" ]] || command -v opencode >/dev/null 2>&1; } && echo 'Detected' || return 1")
     scan_args+=("Homebrew" "command -v brew >/dev/null 2>&1 && echo 'Installed' || return 1")
 
@@ -238,6 +239,14 @@ detect_installed_tools() {
         log "INFO" "AeroSpace detected"
     else
         DETECTED_AEROSPACE=false
+    fi
+
+    # Detect Alfred
+    if [[ -d "$HOME/Library/Application Support/Alfred" ]] || [[ -d "/Applications/Alfred 5.app" ]]; then
+        DETECTED_ALFRED=true
+        log "INFO" "Alfred detected"
+    else
+        DETECTED_ALFRED=false
     fi
 }
 
@@ -309,7 +318,7 @@ parse_arguments() {
 
 show_help() {
     cat << 'EOF'
-agentpong Installer - The ultimate macOS notification system for Claude Code & OpenCode
+agentpong Installer - macOS developer workspace management + AI agent notifications
 
 USAGE:
     curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install.sh | bash
@@ -667,12 +676,36 @@ run_health_check() {
         warn "jq not installed (required for some features)"
     fi
     
-    # Check AeroSpace
+    # Check AeroSpace (required)
     if command -v aerospace &> /dev/null || [[ -x "/opt/homebrew/bin/aerospace" ]] || [[ -x "/usr/local/bin/aerospace" ]]; then
-        success "AeroSpace detected (window focus enabled)"
+        success "AeroSpace installed"
     else
-        dim "AeroSpace not installed (window focus disabled)"
+        error "AeroSpace not installed (required)"
+        all_ok=false
     fi
+
+    # Check AeroSpace config
+    if [[ -f "$HOME/.aerospace.toml" ]]; then
+        success "AeroSpace config present"
+    else
+        warn "AeroSpace config not found (~/.aerospace.toml)"
+        all_ok=false
+    fi
+
+    # Check AeroSpace scripts
+    step "Checking AeroSpace scripts..."
+    local aero_scripts=("aerospace-fix-cursor.sh" "alfred-focus-window.sh" "list-all-repos.sh" "list-cursor-windows.sh" "toggle-animations.sh" "alfred-search.sh")
+    for script in "${aero_scripts[@]}"; do
+        if [[ -f "$HOME/.config/aerospace/$script" && -x "$HOME/.config/aerospace/$script" ]]; then
+            success "$script present and executable"
+        elif [[ -f "$HOME/.config/aerospace/$script" ]]; then
+            warn "$script present but not executable"
+            all_ok=false
+        else
+            warn "$script missing"
+            all_ok=false
+        fi
+    done
     
     # Check sandbox (if installed)
     if [[ -f "$SANDBOX_PLIST" ]]; then
@@ -829,14 +862,14 @@ run_install() {
 
     # Phase 2: Dependencies
     section "Installing Dependencies" "" "" "↯"
-    
+
     # Check for jq
     if ! command -v jq &> /dev/null; then
         if [[ "$UPDATE_MODE" == true ]]; then
             error "jq is required but not installed. Install manually: brew install jq"
             return 1
         fi
-        
+
         warn "jq is required for configuration"
         confirm "Install jq via Homebrew?"
         if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -851,14 +884,14 @@ run_install() {
     else
         success "jq already installed"
     fi
-    
+
     # Check for terminal-notifier
     if ! command -v terminal-notifier &> /dev/null; then
         if [[ "$UPDATE_MODE" == true ]]; then
             error "terminal-notifier is required but not installed"
             return 1
         fi
-        
+
         warn "terminal-notifier is required for notifications"
         confirm "Install terminal-notifier via Homebrew?"
         if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -871,6 +904,28 @@ run_install() {
         fi
     else
         success "terminal-notifier already installed"
+    fi
+
+    # Check for AeroSpace
+    if [[ "$DETECTED_AEROSPACE" != true ]]; then
+        if [[ "$UPDATE_MODE" == true ]]; then
+            error "AeroSpace is required but not installed. Install with: brew install --cask nikitabobko/tap/aerospace"
+            return 1
+        fi
+
+        warn "AeroSpace is required for workspace management and window focusing"
+        confirm "Install AeroSpace via Homebrew?"
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            if [[ "$DRY_RUN" == false ]]; then
+                spin "Installing AeroSpace..." brew install --cask nikitabobko/tap/aerospace
+                DETECTED_AEROSPACE=true
+            fi
+        else
+            error "Please install AeroSpace manually: brew install --cask nikitabobko/tap/aerospace"
+            return 1
+        fi
+    else
+        success "AeroSpace already installed"
     fi
     
     # Install core files
@@ -1066,7 +1121,37 @@ run_install() {
     if [[ "$DRY_RUN" == false ]]; then
         killall terminal-notifier 2>/dev/null && success "Restarted terminal-notifier" || dim "No running terminal-notifier processes"
     fi
-    
+
+    # Phase 3: AeroSpace Config
+    install_aerospace_config
+
+    # Phase 5: Alfred Workflow (optional)
+    if [[ "$DETECTED_ALFRED" == true ]]; then
+        install_alfred_workflow
+    else
+        section "Alfred Workflow" "" "" "⚙"
+        dim "Alfred not detected, skipping workflow installation"
+        dim "Install Alfred to get the Cursor project switcher workflow"
+    fi
+
+    # Phase 6: Performance
+    if [[ "$UPDATE_MODE" != true && "$QUIET_MODE" != true ]]; then
+        section "Performance Tuning" "" "" "⚡"
+        echo ""
+        confirm "Disable macOS animations for snappier workspace switching?"
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            if [[ "$DRY_RUN" == false ]]; then
+                step "Disabling macOS animations..."
+                bash "$SRC_DIR/toggle-animations.sh" off > /dev/null 2>&1
+                success "Animations disabled (log out and back in for full effect)"
+            else
+                dim "[DRY-RUN] Would disable macOS animations"
+            fi
+        else
+            dim "Keeping default animations"
+        fi
+    fi
+
     # OpenCode support
     if [[ "${INSTALL_OPENCODE:-$DETECTED_OPENCODE}" == true ]]; then
         install_opencode_support
@@ -1091,29 +1176,36 @@ run_install() {
     
     # Show summary with status grid
     section "Installation Complete" "" "" "◆"
-    
+
     local summary_items=(
+        "AeroSpace" "✓ Configured"
         "Notifications" "✓ Enabled"
-        "Window Focus" "$([[ "$DETECTED_AEROSPACE" == true ]] && echo "✓ Enabled" || echo "○ Disabled")"
+        "Window Focus" "✓ Enabled"
     )
-    
+
     if [[ "${INSTALL_OPENCODE:-false}" == true || -f "$OPENCODE_PLUGIN_FILE" ]]; then
         summary_items+=("OpenCode" "✓ Enabled")
     fi
-    
+
     if [[ "${INSTALL_SANDBOX:-false}" == true || -f "$SANDBOX_PLIST" ]]; then
         summary_items+=("Sandbox" "✓ Enabled")
     fi
-    
-    show_status_grid "${summary_items[@]}"
-    
-    # Keybinding suggestion
-    if [[ "${SUGGEST_KEYBINDING:-false}" == true && "$DETECTED_AEROSPACE" == true ]]; then
-        echo ""
-        info "Suggested AeroSpace keybinding:"
-        dim "  Add to ~/.config/aerospace/aerospace.toml:"
-        dim "  alt-n = 'exec-and-forget ~/.claude/pong.sh'"
+
+    if [[ "$DETECTED_ALFRED" == true ]]; then
+        summary_items+=("Alfred" "✓ Workflow installed")
     fi
+
+    show_status_grid "${summary_items[@]}"
+
+    # Keybinding table
+    echo ""
+    info "Keybindings (configured in ~/.aerospace.toml):"
+    dim "  alt+1..9      Switch to workspace 1-9"
+    dim "  alt+s         Sort/organize Cursor windows by priority"
+    dim "  alt+n         Focus next pending notification"
+    dim "  alt+p         Open project switcher (Alfred)"
+    dim "  alt+f         Toggle fullscreen"
+    dim "  alt+left/right  Previous/next workspace"
     
     # Test notification
     if [[ "$DRY_RUN" == false ]]; then
@@ -1133,15 +1225,20 @@ run_install() {
         section "Quick Start" "" "" "▸"
         
         cascade_success \
+            "AeroSpace workspace management configured" \
             "Notifications enabled for Claude Code" \
             "Click notifications to focus window" \
-            "Use 'pong.sh' to cycle notifications"
-        
+            "Press alt+n to cycle pending notifications" \
+            "Press alt+s to organize Cursor windows"
+
         echo ""
         typewrite "Ready to pong."
         echo ""
         info "Cursor/VS Code: Works automatically"
         dim "Start a new Claude session to test"
+        echo ""
+        info "Edit ~/.config/aerospace/cursor-projects.txt to set project priority"
+        dim "Then press alt+s to organize windows by priority"
         echo ""
         info "iTerm2: Set up Triggers for standalone use"
         dim "iTerm > Settings > Profiles > Advanced > Triggers"
@@ -1200,6 +1297,127 @@ hook_exists_with_value() {
     fi
     
     return 1
+}
+
+install_aerospace_config() {
+    log "INFO" "Installing AeroSpace configuration"
+
+    section "Setting up AeroSpace workspace management" "" "" "⚙"
+
+    # Create config directory
+    dry_aware_mkdir "$AEROSPACE_CONFIG_DIR"
+
+    # Copy aerospace.toml
+    step "Checking aerospace.toml..."
+    if [[ -f "$AEROSPACE_TOML_DST" ]]; then
+        if needs_update "$AEROSPACE_TOML_SRC" "$AEROSPACE_TOML_DST"; then
+            if [[ "$QUIET_MODE" != true && "$UPDATE_MODE" != true ]]; then
+                warn "~/.aerospace.toml already exists and differs from agentpong's config"
+                confirm "Overwrite with agentpong's aerospace.toml? (backup will be created)"
+                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                    info "Keeping existing aerospace.toml"
+                else
+                    if [[ "$DRY_RUN" == false ]]; then
+                        cp "$AEROSPACE_TOML_DST" "$AEROSPACE_TOML_DST.backup.$(date +%Y%m%d-%H%M%S)"
+                        add_rollback "mv '$AEROSPACE_TOML_DST.backup.'* '$AEROSPACE_TOML_DST' 2>/dev/null || true"
+                    fi
+                    dry_aware_copy "$AEROSPACE_TOML_SRC" "$AEROSPACE_TOML_DST" "aerospace.toml"
+                    success "Updated aerospace.toml (backup created)"
+                fi
+            else
+                if [[ ! -f "$AEROSPACE_TOML_DST.backup" ]]; then
+                    cp "$AEROSPACE_TOML_DST" "$AEROSPACE_TOML_DST.backup.$(date +%Y%m%d-%H%M%S)"
+                fi
+                dry_aware_copy "$AEROSPACE_TOML_SRC" "$AEROSPACE_TOML_DST" "aerospace.toml"
+                success "Updated aerospace.toml"
+            fi
+        else
+            dim "aerospace.toml is up to date"
+        fi
+    else
+        dry_aware_copy "$AEROSPACE_TOML_SRC" "$AEROSPACE_TOML_DST" "aerospace.toml"
+        success "Installed aerospace.toml"
+        add_rollback "rm '$AEROSPACE_TOML_DST' 2>/dev/null || true"
+    fi
+
+    # Copy scripts to ~/.config/aerospace/
+    step "Installing AeroSpace scripts..."
+    for script in "${AEROSPACE_SCRIPTS[@]}"; do
+        local src="$SRC_DIR/$script"
+        local dst="$AEROSPACE_CONFIG_DIR/$script"
+        if [[ -f "$src" ]]; then
+            if needs_update "$src" "$dst"; then
+                dry_aware_copy "$src" "$dst" "$script"
+                success "Installed $script"
+            else
+                dim "$script is up to date"
+            fi
+        else
+            warn "Source script not found: $script"
+        fi
+    done
+
+    # Create cursor-projects.txt from example if it doesn't exist
+    step "Checking cursor-projects.txt..."
+    if [[ -f "$CURSOR_PROJECTS_DST" ]]; then
+        dim "cursor-projects.txt already exists (preserving your project list)"
+    else
+        if [[ -f "$CURSOR_PROJECTS_EXAMPLE" ]]; then
+            dry_aware_copy "$CURSOR_PROJECTS_EXAMPLE" "$CURSOR_PROJECTS_DST" "cursor-projects.txt"
+            # Don't make the config file executable
+            if [[ "$DRY_RUN" == false ]]; then
+                chmod -x "$CURSOR_PROJECTS_DST"
+            fi
+            success "Created cursor-projects.txt (edit to set your project priority order)"
+        fi
+    fi
+
+    # Reload AeroSpace config
+    if [[ "$DRY_RUN" == false ]]; then
+        step "Reloading AeroSpace config..."
+        if command -v aerospace &> /dev/null || [[ -x "/opt/homebrew/bin/aerospace" ]] || [[ -x "/usr/local/bin/aerospace" ]]; then
+            local aero_bin
+            aero_bin=$(command -v aerospace 2>/dev/null || echo "/opt/homebrew/bin/aerospace")
+            "$aero_bin" reload-config 2>/dev/null && success "AeroSpace config reloaded" || dim "AeroSpace not running, config will load on next start"
+        fi
+    fi
+
+    log "INFO" "AeroSpace configuration complete"
+}
+
+install_alfred_workflow() {
+    log "INFO" "Installing Alfred workflow"
+
+    section "Installing Alfred workflow" "" "" "⚙"
+
+    local workflow_src="$ALFRED_DIR/$ALFRED_WORKFLOW_NAME"
+    local workflow_dst="$ALFRED_WORKFLOWS_DIR/com.tsilva.$ALFRED_WORKFLOW_NAME"
+
+    if [[ ! -d "$ALFRED_WORKFLOWS_DIR" ]]; then
+        # Try to find Alfred preferences directory
+        ALFRED_WORKFLOWS_DIR=$(find "$HOME/Library/Application Support/Alfred" -type d -name "workflows" 2>/dev/null | head -1)
+        if [[ -z "$ALFRED_WORKFLOWS_DIR" ]]; then
+            dim "Alfred workflows directory not found, skipping"
+            return 0
+        fi
+        workflow_dst="$ALFRED_WORKFLOWS_DIR/com.tsilva.$ALFRED_WORKFLOW_NAME"
+    fi
+
+    if [[ -d "$workflow_src" ]]; then
+        step "Installing Cursor Project Switcher workflow..."
+        dry_aware_mkdir "$workflow_dst"
+
+        # Copy info.plist with __HOME__ substitution
+        if [[ "$DRY_RUN" == false ]]; then
+            sed "s|__HOME__|$HOME|g" "$workflow_src/info.plist" > "$workflow_dst/info.plist"
+            success "Installed Alfred workflow (keyword: p)"
+            add_rollback "rm -rf '$workflow_dst' 2>/dev/null || true"
+        else
+            dim "[DRY-RUN] Would install Alfred workflow to $workflow_dst"
+        fi
+    else
+        warn "Alfred workflow source not found: $workflow_src"
+    fi
 }
 
 install_opencode_support() {
@@ -1490,6 +1708,26 @@ main() {
     SANDBOX_PLIST_TEMPLATE="$CONFIG_DIR/com.agentpong.sandbox.plist.template"
     SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.agentpong.sandbox.plist"
     
+    # AeroSpace paths
+    AEROSPACE_CONFIG_DIR="$HOME/.config/aerospace"
+    AEROSPACE_TOML_DST="$HOME/.aerospace.toml"
+    AEROSPACE_TOML_SRC="$CONFIG_DIR/aerospace.toml"
+    AEROSPACE_SCRIPTS=(
+        "aerospace-fix-cursor.sh"
+        "alfred-focus-window.sh"
+        "list-all-repos.sh"
+        "list-cursor-windows.sh"
+        "toggle-animations.sh"
+        "alfred-search.sh"
+    )
+    CURSOR_PROJECTS_EXAMPLE="$CONFIG_DIR/cursor-projects.txt.example"
+    CURSOR_PROJECTS_DST="$AEROSPACE_CONFIG_DIR/cursor-projects.txt"
+
+    # Alfred paths
+    ALFRED_DIR="$SCRIPT_DIR/alfred"
+    ALFRED_WORKFLOWS_DIR="$HOME/Library/Application Support/Alfred/Alfred.alfredpreferences/workflows"
+    ALFRED_WORKFLOW_NAME="cursor-project-switcher"
+
     # OpenCode paths
     OPENCODE_DIR="$HOME/.opencode"
     OPENCODE_NOTIFY_SCRIPT="$OPENCODE_DIR/notify.sh"

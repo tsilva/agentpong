@@ -1,0 +1,8 @@
+# List your Cursor projects in priority order (one per line)
+# Projects listed first get lower workspace numbers (e.g., workspace 2, 3, 4...)
+# Projects not listed here will be assigned to subsequent workspaces
+#
+# Example:
+# my-main-project
+# side-project
+# experiments
