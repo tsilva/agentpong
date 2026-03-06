@@ -128,6 +128,15 @@ OPENCODE_SETTINGS_FILE="$OPENCODE_DIR/settings.json"
 OPENCODE_PLUGIN_FILE="$HOME/.config/opencode/plugins/agentpong.ts"
 OPENCODE_CONFIG_SETTINGS="$HOME/.config/opencode/settings.json"
 
+# Codex paths
+CODEX_DIR="$HOME/.codex"
+CODEX_NOTIFY_SCRIPT="$CODEX_DIR/notify.sh"
+CODEX_STYLE_SCRIPT="$CODEX_DIR/style.sh"
+CODEX_FOCUS_SCRIPT="$CODEX_DIR/focus-window.sh"
+CODEX_PONG_SCRIPT="$CODEX_DIR/pong.sh"
+CODEX_PLUGIN_FILE="$CODEX_DIR/agentpong.py"
+CODEX_CONFIG_FILE="$HOME/.codex/config.toml"
+
 # AeroSpace paths
 AEROSPACE_CONFIG_DIR="$HOME/.config/aerospace"
 AEROSPACE_TOML="$HOME/.aerospace.toml"
@@ -249,6 +258,28 @@ main() {
     if [[ -f "$OPENCODE_PLUGIN_FILE" ]]; then
         list_item "Remove" "OpenCode plugin"
         items_to_remove+=("$OPENCODE_PLUGIN_FILE")
+    fi
+
+    # Check Codex CLI
+    if [[ -f "$CODEX_NOTIFY_SCRIPT" ]]; then
+        list_item "Remove" "$CODEX_NOTIFY_SCRIPT"
+        items_to_remove+=("$CODEX_NOTIFY_SCRIPT")
+    fi
+    if [[ -f "$CODEX_STYLE_SCRIPT" ]]; then
+        list_item "Remove" "$CODEX_STYLE_SCRIPT"
+        items_to_remove+=("$CODEX_STYLE_SCRIPT")
+    fi
+    if [[ -f "$CODEX_FOCUS_SCRIPT" ]]; then
+        list_item "Remove" "$CODEX_FOCUS_SCRIPT"
+        items_to_remove+=("$CODEX_FOCUS_SCRIPT")
+    fi
+    if [[ -f "$CODEX_PONG_SCRIPT" ]]; then
+        list_item "Remove" "$CODEX_PONG_SCRIPT"
+        items_to_remove+=("$CODEX_PONG_SCRIPT")
+    fi
+    if [[ -f "$CODEX_PLUGIN_FILE" ]]; then
+        list_item "Remove" "Codex CLI plugin"
+        items_to_remove+=("$CODEX_PLUGIN_FILE")
     fi
 
     # Check AeroSpace config

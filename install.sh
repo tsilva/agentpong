@@ -188,7 +188,7 @@ run_preflight() {
     # Build scan dashboard checks
     local -a scan_args=()
 
-    scan_args+=("Operating System" "echo \"macOS $(sw_vers -productVersion)\"")
+    scan_args+=("Operating System" "echo \"macOS \$(sw_vers -productVersion)\"")
     scan_args+=("Architecture" "uname -m | sed 's/arm64/Apple Silicon/' | sed 's/x86_64/Intel/'")
     scan_args+=("Permissions" "echo OK")
     scan_args+=("Claude Code" "command -v claude >/dev/null 2>&1 && claude --version 2>/dev/null | head -1 || { [[ -d \"\$HOME/.claude\" ]] && echo 'Detected' || return 1; }")
@@ -197,6 +197,7 @@ run_preflight() {
     scan_args+=("AeroSpace" "{ command -v aerospace >/dev/null 2>&1 || [[ -x /opt/homebrew/bin/aerospace ]] || [[ -x /usr/local/bin/aerospace ]]; } && { aerospace --version 2>/dev/null | head -1 || echo 'Installed'; } || return 1")
     scan_args+=("Alfred" "{ [[ -d \"\$HOME/Library/Application Support/Alfred\" ]] || [[ -d \"/Applications/Alfred 5.app\" ]]; } && echo 'Detected' || return 1")
     scan_args+=("OpenCode" "{ [[ -d \"\$HOME/.opencode\" ]] || [[ -d \"\$HOME/.config/opencode\" ]] || command -v opencode >/dev/null 2>&1; } && echo 'Detected' || return 1")
+    scan_args+=("Codex CLI" "{ [[ -d \"\$HOME/.codex\" ]] || command -v codex >/dev/null 2>&1; } && echo 'Detected' || return 1")
     scan_args+=("Homebrew" "command -v brew >/dev/null 2>&1 && echo 'Installed' || return 1")
 
     if [[ "${INSTALL_SANDBOX:-false}" == true ]]; then
@@ -223,6 +224,14 @@ detect_installed_tools() {
         log "INFO" "OpenCode detected"
     else
         DETECTED_OPENCODE=false
+    fi
+    
+    # Detect Codex CLI
+    if [[ -d "$HOME/.codex" ]] || command -v codex &> /dev/null 2>&1; then
+        DETECTED_CODEX=true
+        log "INFO" "Codex CLI detected"
+    else
+        DETECTED_CODEX=false
     fi
     
     # Detect sandbox
@@ -801,14 +810,17 @@ run_wizard() {
     
     local integration_options=()
     [[ "$DETECTED_OPENCODE" == true ]] && integration_options+=("OpenCode (detected)")
+    [[ "$DETECTED_CODEX" == true ]] && integration_options+=("Codex CLI (detected)")
     [[ "$DETECTED_SANDBOX" == true ]] && integration_options+=("claude-sandbox (detected)")
     [[ "$DETECTED_OPENCODE" != true ]] && integration_options+=("OpenCode (install anyway)")
+    [[ "$DETECTED_CODEX" != true ]] && integration_options+=("Codex CLI (install anyway)")
     [[ "$DETECTED_SANDBOX" != true ]] && integration_options+=("claude-sandbox (install anyway)")
     
     if [[ ${#integration_options[@]} -gt 0 ]]; then
         local selected=$(choose_multi "Select integrations to install:" "${integration_options[@]}")
         
         [[ "$selected" == *"OpenCode"* ]] && INSTALL_OPENCODE=true
+        [[ "$selected" == *"Codex"* ]] && INSTALL_CODEX=true
         [[ "$selected" == *"sandbox"* ]] && INSTALL_SANDBOX=true
     fi
     
@@ -1142,6 +1154,17 @@ run_install() {
         fi
     fi
     
+    # Codex CLI support
+    if [[ "${INSTALL_CODEX:-$DETECTED_CODEX}" == true ]]; then
+        install_codex_support
+    elif [[ "$UPDATE_MODE" != true && "$QUIET_MODE" != true && "$DETECTED_CODEX" == false ]]; then
+        echo ""
+        confirm "Install Codex CLI support?"
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            install_codex_support
+        fi
+    fi
+    
     # Sandbox support
     if [[ "${INSTALL_SANDBOX:-$DETECTED_SANDBOX}" == true ]]; then
         install_sandbox_support
@@ -1164,6 +1187,10 @@ run_install() {
 
     if [[ "${INSTALL_OPENCODE:-false}" == true || -f "$OPENCODE_PLUGIN_FILE" ]]; then
         summary_items+=("OpenCode" "✓ Enabled")
+    fi
+
+    if [[ "${INSTALL_CODEX:-false}" == true || -f "$CODEX_PLUGIN_FILE" ]]; then
+        summary_items+=("Codex CLI" "✓ Enabled")
     fi
 
     if [[ "${INSTALL_SANDBOX:-false}" == true || -f "$SANDBOX_PLIST" ]]; then
@@ -1462,6 +1489,80 @@ install_opencode_support() {
     INSTALL_OPENCODE=true
 }
 
+install_codex_support() {
+    log "INFO" "Installing Codex CLI support"
+    
+    section "Installing Codex CLI support" "" "" "⚙"
+    
+    local codex_updated=false
+    
+    # Create directory
+    dry_aware_mkdir "$CODEX_DIR"
+    
+    # Copy files
+    if needs_update "$SRC_DIR/notify.sh" "$CODEX_NOTIFY_SCRIPT"; then
+        dry_aware_copy "$SRC_DIR/notify.sh" "$CODEX_NOTIFY_SCRIPT" "notify.sh"
+        success "Installed notify.sh"
+        codex_updated=true
+    else
+        dim "notify.sh is up to date"
+    fi
+    
+    if needs_update "$SRC_DIR/style.sh" "$CODEX_STYLE_SCRIPT"; then
+        dry_aware_copy "$SRC_DIR/style.sh" "$CODEX_STYLE_SCRIPT" "style.sh"
+        success "Installed style.sh"
+        codex_updated=true
+    else
+        dim "style.sh is up to date"
+    fi
+    
+    if needs_update "$FOCUS_SCRIPT_SRC" "$CODEX_FOCUS_SCRIPT"; then
+        dry_aware_copy "$FOCUS_SCRIPT_SRC" "$CODEX_FOCUS_SCRIPT" "focus-window.sh"
+        success "Installed focus-window.sh"
+        codex_updated=true
+    else
+        dim "focus-window.sh is up to date"
+    fi
+    
+    if needs_update "$PONG_SCRIPT_SRC" "$CODEX_PONG_SCRIPT"; then
+        dry_aware_copy "$PONG_SCRIPT_SRC" "$CODEX_PONG_SCRIPT" "pong.sh"
+        success "Installed pong.sh"
+        codex_updated=true
+    else
+        dim "pong.sh is up to date"
+    fi
+    
+    # Install plugin
+    if needs_update "$PLUGINS_DIR/codex/agentpong.py" "$CODEX_PLUGIN_FILE"; then
+        dry_aware_copy "$PLUGINS_DIR/codex/agentpong.py" "$CODEX_PLUGIN_FILE" "agentpong.py"
+        success "Installed Codex plugin"
+        codex_updated=true
+    else
+        dim "Codex plugin is up to date"
+    fi
+    
+    # Make plugin executable
+    if [[ -f "$CODEX_PLUGIN_FILE" && "$DRY_RUN" == false ]]; then
+        chmod +x "$CODEX_PLUGIN_FILE"
+    fi
+    
+    if [[ "$codex_updated" == true && "$DRY_RUN" == false ]]; then
+        banner "Codex CLI support installed!"
+        info "Codex notifications will appear with workspace names."
+        echo ""
+        dim "To enable notifications, add this to ~/.codex/config.toml:"
+        dim ""
+        dim 'notify = ["python3", "'"$HOME/.codex/agentpong.py"'"]'
+        echo ""
+    elif [[ "$DRY_RUN" == true && "$codex_updated" == true ]]; then
+        dim "Codex: Would update files"
+    else
+        dim "Codex CLI support is already up to date"
+    fi
+    
+    INSTALL_CODEX=true
+}
+
 install_sandbox_support() {
     log "INFO" "Installing sandbox support"
     
@@ -1681,6 +1782,15 @@ main() {
     OPENCODE_PLUGIN_FILE="$OPENCODE_PLUGIN_DIR/agentpong.ts"
     OPENCODE_SETTINGS_FILE="$OPENCODE_DIR/settings.json"
     OPENCODE_CONFIG_SETTINGS="$HOME/.config/opencode/settings.json"
+    
+    # Codex paths
+    CODEX_DIR="$HOME/.codex"
+    CODEX_NOTIFY_SCRIPT="$CODEX_DIR/notify.sh"
+    CODEX_STYLE_SCRIPT="$CODEX_DIR/style.sh"
+    CODEX_FOCUS_SCRIPT="$CODEX_DIR/focus-window.sh"
+    CODEX_PONG_SCRIPT="$CODEX_DIR/pong.sh"
+    CODEX_PLUGIN_FILE="$CODEX_DIR/agentpong.py"
+    CODEX_CONFIG_FILE="$HOME/.codex/config.toml"
     
     # Route to appropriate mode
     if [[ "$UNINSTALL_MODE" == true ]]; then

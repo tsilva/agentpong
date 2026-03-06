@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # agentpong - Notification Script
-# Sends a macOS notification when Claude Code or OpenCode is ready for input.
+# Sends a macOS notification when Claude Code, OpenCode, or Codex CLI is ready for input.
 # If focus-window.sh is installed, clicking the notification focuses the
 # correct IDE window (requires AeroSpace for cross-workspace support).
 #
@@ -31,6 +31,11 @@ if [ -n "$CLAUDE_PROJECT_DIR" ]; then
     LAUNCH_DIR="$CLAUDE_PROJECT_DIR"
     TOOL_NAME="Claude Code"
     TOOL_DIR=".claude"
+elif [ -n "$CODEX_PROJECT_DIR" ] || [ -n "$CODEX" ]; then
+    # Codex CLI
+    LAUNCH_DIR="${CODEX_PROJECT_DIR:-$PWD}"
+    TOOL_NAME="Codex"
+    TOOL_DIR=".codex"
 elif [ -n "$OPENCODE_PROJECT_DIR" ] || [ -n "$OPENCODE" ]; then
     # OpenCode (checks both OPENCODE_PROJECT_DIR and OPENCODE env vars)
     LAUNCH_DIR="${OPENCODE_PROJECT_DIR:-$PWD}"
