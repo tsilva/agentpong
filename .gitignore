@@ -48,3 +48,4 @@ logs/
 # >>> END MANAGED <<<
 
 # Project-specific rules
+.worktrees/

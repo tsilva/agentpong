@@ -3,8 +3,7 @@
 # agentpong - AeroSpace Window Focusing Script
 # Executed when user clicks a notification to focus the correct IDE window.
 #
-# Requires AeroSpace tiling window manager. If AeroSpace is not available,
-# falls back to AppleScript to activate the IDE.
+# Requires AeroSpace tiling window manager.
 #
 # Usage: focus-window.sh <workspace-name>
 #
@@ -17,10 +16,8 @@ if [ -x "/opt/homebrew/bin/aerospace" ]; then
 elif [ -x "/usr/local/bin/aerospace" ]; then
     AEROSPACE="/usr/local/bin/aerospace"
 else
-    # AeroSpace not found — fall back to AppleScript
-    osascript -e 'tell application "Cursor" to activate' 2>/dev/null || \
-        osascript -e 'tell application "Visual Studio Code" to activate' 2>/dev/null
-    exit 0
+    echo "Error: AeroSpace not found. Install with: brew install --cask nikitabobko/tap/aerospace" >&2
+    exit 1
 fi
 
 # Find window ID for Cursor/Code with workspace in title
@@ -43,8 +40,4 @@ if [ -n "$WINDOW_INFO" ]; then
     # Switch workspace and focus window
     [ -n "$WINDOW_WORKSPACE" ] && "$AEROSPACE" workspace "$WINDOW_WORKSPACE"
     "$AEROSPACE" focus --window-id "$WINDOW_ID"
-else
-    # Last resort: just activate Cursor/VS Code
-    osascript -e 'tell application "Cursor" to activate' 2>/dev/null || \
-        osascript -e 'tell application "Visual Studio Code" to activate' 2>/dev/null
 fi
