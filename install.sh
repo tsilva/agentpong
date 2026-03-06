@@ -754,8 +754,7 @@ test_notification() {
     info "Sending test notification..."
     
     if [[ -x "$NOTIFY_SCRIPT" ]]; then
-        # Show a brief table animation
-        table_animation 1 "Test notification sent!"
+        success "Test notification sent!"
         CLAUDE_PROJECT_DIR="$HOME" "$NOTIFY_SCRIPT" "Test notification from agentpong" &
         success "Check your notification center!"
         dim "Click the notification to test window focus"
@@ -824,7 +823,7 @@ run_wizard() {
     
     echo ""
     info "Configuration complete! Starting installation..."
-    table_animation 1 "Let's go!"
+    success "Let's go!"
 }
 
 # =============================================================================
@@ -834,10 +833,7 @@ run_wizard() {
 run_install() {
     log "INFO" "Starting installation"
     
-    # Pong intro animation + tagline
     ring_bell
-    pong_intro "$AGENTPONG_VERSION"
-    typewrite "Agents ping. You pong back."
     
     if [[ "$UPDATE_MODE" == true ]]; then
         info "Update mode: only updating changed files"
@@ -857,9 +853,6 @@ run_install() {
         run_wizard
     fi
     
-    # Show architecture flow diagram
-    flow_diagram true "$DETECTED_OPENCODE" "$DETECTED_SANDBOX"
-
     # Phase 2: Dependencies
     section "Installing Dependencies" "" "" "↯"
 
@@ -1004,26 +997,12 @@ run_install() {
     PERMISSION_MESSAGE="${PERMISSION_MESSAGE:-Permission required}"
     
     STOP_HOOK_COMMAND="$NOTIFY_SCRIPT '$STOP_MESSAGE'"
-    STOP_HOOK_CONFIG='{
-      "matcher": "",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "'"$NOTIFY_SCRIPT"' '\''"$STOP_MESSAGE"'\''"
-        }
-      ]
-    }'
-    
+    STOP_HOOK_CONFIG=$(jq -n --arg cmd "$NOTIFY_SCRIPT '$STOP_MESSAGE'" \
+        '{matcher: "", hooks: [{type: "command", command: $cmd}]}')
+
     PERMISSION_HOOK_COMMAND="$NOTIFY_SCRIPT '$PERMISSION_MESSAGE'"
-    PERMISSION_HOOK_CONFIG='{
-      "matcher": "",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "'"$NOTIFY_SCRIPT"' '\''"$PERMISSION_MESSAGE"'\''"
-        }
-      ]
-    }'
+    PERMISSION_HOOK_CONFIG=$(jq -n --arg cmd "$NOTIFY_SCRIPT '$PERMISSION_MESSAGE'" \
+        '{matcher: "", hooks: [{type: "command", command: $cmd}]}')
     
     local settings_modified=false
     
@@ -1224,15 +1203,14 @@ run_install() {
         echo ""
         section "Quick Start" "" "" "▸"
         
-        cascade_success \
-            "AeroSpace workspace management configured" \
-            "Notifications enabled for Claude Code" \
-            "Click notifications to focus window" \
-            "Press alt+n to cycle pending notifications" \
-            "Press alt+s to organize Cursor windows"
+        success "AeroSpace workspace management configured"
+        success "Notifications enabled for Claude Code"
+        success "Click notifications to focus window"
+        success "Press alt+n to cycle pending notifications"
+        success "Press alt+s to organize Cursor windows"
 
         echo ""
-        typewrite "Ready to pong."
+        gradient_text "  Ready to pong." purple cyan
         echo ""
         info "Cursor/VS Code: Works automatically"
         dim "Start a new Claude session to test"
@@ -1540,26 +1518,12 @@ install_sandbox_support() {
     step "Configuring sandbox hooks..."
     
     SANDBOX_STOP_HOOK_COMMAND="/home/claude/.claude/notify.sh 'Ready for input'"
-    SANDBOX_STOP_HOOK_CONFIG='{
-      "matcher": "",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "/home/claude/.claude/notify.sh '\''Ready for input'\''"
-        }
-      ]
-    }'
-    
+    SANDBOX_STOP_HOOK_CONFIG=$(jq -n --arg cmd "$SANDBOX_STOP_HOOK_COMMAND" \
+        '{matcher: "", hooks: [{type: "command", command: $cmd}]}')
+
     SANDBOX_PERMISSION_HOOK_COMMAND="/home/claude/.claude/notify.sh 'Permission required'"
-    SANDBOX_PERMISSION_HOOK_CONFIG='{
-      "matcher": "",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "/home/claude/.claude/notify.sh '\''Permission required'\''"
-        }
-      ]
-    }'
+    SANDBOX_PERMISSION_HOOK_CONFIG=$(jq -n --arg cmd "$SANDBOX_PERMISSION_HOOK_COMMAND" \
+        '{matcher: "", hooks: [{type: "command", command: $cmd}]}')
     
     if [[ -f "$SANDBOX_SETTINGS_FILE" ]]; then
         if [[ ! -f "$SANDBOX_SETTINGS_FILE.backup" ]]; then
