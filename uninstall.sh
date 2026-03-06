@@ -272,10 +272,6 @@ main() {
         list_item "Remove" "AeroSpace scripts from ~/.config/aerospace/"
     fi
 
-    if [[ -f "$AEROSPACE_CONFIG_DIR/cursor-projects.txt" ]]; then
-        list_item "Remove" "cursor-projects.txt (with prompt)"
-    fi
-
     # Check Alfred workflow
     local will_remove_alfred=false
     if [[ -d "$ALFRED_WORKFLOW_DIR" ]]; then
@@ -376,22 +372,6 @@ main() {
                 success "Removed $script"
             fi
         done
-    fi
-
-    # Remove cursor-projects.txt (user data - prompt)
-    if [[ -f "$AEROSPACE_CONFIG_DIR/cursor-projects.txt" ]]; then
-        if [[ "$FORCE_MODE" == true ]]; then
-            dry_aware_remove "$AEROSPACE_CONFIG_DIR/cursor-projects.txt" "cursor-projects.txt"
-            success "Removed cursor-projects.txt"
-        elif [[ "$DRY_RUN" != true ]]; then
-            confirm "Remove cursor-projects.txt? (contains your project priority list)"
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                rm "$AEROSPACE_CONFIG_DIR/cursor-projects.txt"
-                success "Removed cursor-projects.txt"
-            else
-                dim "Keeping cursor-projects.txt"
-            fi
-        fi
     fi
 
     # Remove ~/.aerospace.toml (user-facing config - prompt)
