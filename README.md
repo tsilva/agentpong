@@ -27,14 +27,14 @@ The installer will:
 1. Install AeroSpace, terminal-notifier, and jq (if needed)
 2. Deploy AeroSpace config with workspace keybindings
 3. Install scripts for window organization and notification handling
-4. Configure Claude Code hooks (`Stop` + `PermissionRequest`)
-5. Optionally install Alfred workflow, OpenCode, and sandbox support
+4. Configure AI agent hooks (Claude Code, Codex CLI, OpenCode)
+5. Optionally install Alfred workflow and sandbox support
 
 ---
 
 ## Overview
 
-**The Pain:** Running one Claude Code session is straightforward. Running *several* in parallel — each working on a different project — quickly becomes chaos. Which task finished? Which window was that? You keep switching tabs to check, or worse, you miss a permission prompt and an agent sits idle for minutes.
+**The Pain:** Running one AI coding agent session is straightforward. Running *several* in parallel — each working on a different project — quickly becomes chaos. Which task finished? Which window was that? You keep switching tabs to check, or worse, you miss a permission prompt and an agent sits idle for minutes.
 
 **The Solution:** agentpong turns you into a **supervisor of AI coding agents**. Your Cursor windows get organized into numbered workspaces by priority. When an agent finishes or needs permission, you get a desktop notification. One click (or `alt+n`) jumps you directly to the right window — even across workspaces.
 
@@ -44,7 +44,7 @@ The installer will:
 
 | ⚡ Setup | 🎯 Focus | 🖥️ Workspaces | 🤖 Tools |
 |---------|----------|---------------|---------|
-| 30 seconds | 1-click or alt+n | Cross-workspace | Claude Code · OpenCode · claude-sandbox |
+| 30 seconds | 1-click or alt+n | Cross-workspace | Claude Code · Codex CLI · OpenCode · claude-sandbox |
 
 </div>
 
@@ -56,7 +56,7 @@ graph LR
         Review["Review & Direct"]
     end
 
-    subgraph Agents["Claude Code Instances"]
+    subgraph Agents["AI Coding Agents"]
         A1["Project A"]
         A2["Project B"]
         A3["Project C"]
@@ -71,13 +71,13 @@ graph LR
     A3 -->|"Working..."| Review
 ```
 
-1. **Delegate** — Give Claude Code a task and switch away (`alt+3` to Project B)
+1. **Delegate** — Give your AI agent a task and switch away (`alt+3` to Project B)
 2. **Multiplex** — Work on another project while the first one runs
 3. **Get notified** — Desktop alert when Claude finishes or needs permission
 4. **Context switch** — Click notification or press `alt+2` to jump back instantly
 5. **Review & repeat** — Check output, give next task, switch to another project
 
-This turns waiting time into productive time. While Claude thinks through a complex refactor in Project A, you're reviewing changes in Project B and delegating tests in Project C.
+This turns waiting time into productive time. While an agent thinks through a complex refactor in Project A, you're reviewing changes in Project B and delegating tests in Project C.
 
 ### What Are Workspaces?
 
@@ -85,7 +85,7 @@ Workspaces are virtual desktops managed by [AeroSpace](https://github.com/nikita
 
 - **Instant switching** — No slide animations; workspaces change immediately
 - **Keyboard-driven** — `alt+1` through `alt+9` switches directly to any workspace
-- **One app per workspace** — Each Claude Code instance gets its own dedicated space
+- **One app per workspace** — Each AI agent instance gets its own dedicated space
 - **Fullscreen by default** — Every window is maximized, zero distractions
 
 This is what makes the supervisor pattern practical — switching between projects takes milliseconds, not seconds.
@@ -95,7 +95,7 @@ This is what makes the supervisor pattern practical — switching between projec
 | Workspace | Keybinding | Purpose |
 |-----------|------------|---------|
 | 1 | `alt+1` | Browser, notes, documentation |
-| 2-9 | `alt+2` - `alt+9` | One Cursor/VS Code window per workspace (each running Claude Code) |
+| 2-9 | `alt+2` - `alt+9` | One Cursor/VS Code window per workspace (each running an AI coding agent) |
 
 High-priority projects get lower numbers for faster access.
 
@@ -107,13 +107,13 @@ High-priority projects get lower numbers for faster access.
 - **🎯 Cross-workspace focus** — Click notification or press `alt+n` to jump to the right window
 - **🔍 Project switcher** — Alfred workflow (`alt+p`) to search and switch between projects
 - **⚡ Performance tuning** — Optional macOS animation disabling for snappier workspace switching
-- **🤖 Multi-tool support** — Claude Code, OpenCode, and claude-sandbox containers
+- **🤖 Multi-tool support** — Claude Code, Codex CLI, OpenCode, and claude-sandbox containers
 
 ## 📋 Example Session
 
 Supervising three projects in parallel:
 
-1. **`alt+2`** — Open Claude Code in my-api-backend: "Add pagination to the /users endpoint"
+1. **`alt+2`** — Open my-api-backend: "Add pagination to the /users endpoint"
 2. **`alt+3`** — Switch to my-web-frontend: "Update the user list component to handle paginated responses"
 3. **`alt+4`** — Switch to my-mobile-app: "Write unit tests for the login flow"
 4. **Desktop notification:** "my-api-backend — Ready for input" — **click** to jump back
@@ -125,10 +125,16 @@ Supervising three projects in parallel:
 
 agentpong is the core of a broader workflow. These companion projects enhance the supervisor pattern:
 
+### Tightly Integrated
+
 | Project | Description |
 |---------|-------------|
-| [claude-skills](https://github.com/tsilva/claude-skills) | Reusable skills for Claude Code — README authoring, logo generation, skill creation |
 | [claudebox](https://github.com/tsilva/claudebox) | Sandboxed Claude Code execution — full autonomy, no permission prompts |
+
+### Optional Workflow Enhancers
+
+| Project | Description |
+|---------|-------------|
 | [capture](https://github.com/tsilva/capture) | Instant thought capture to Gmail — dump ideas without breaking flow |
 | [claudebridge](https://github.com/tsilva/claudebridge) | OpenAI-compatible API bridge for Claude Max subscriptions |
 | [gita](https://github.com/nosarthur/gita) | Multi-repo git status overview — bird's eye view across all projects |
@@ -137,7 +143,7 @@ agentpong is the core of a broader workflow. These companion projects enhance th
 
 - **macOS** (Sequoia 15.x supported)
 - **Homebrew** for installing dependencies
-- **Cursor** or **VS Code** with Claude Code or OpenCode
+- **Cursor**, **VS Code**, or a **terminal** with Claude Code, Codex CLI, or OpenCode
 
 ### Installed Automatically
 
@@ -214,7 +220,7 @@ curl -fsSL https://raw.githubusercontent.com/tsilva/agentpong/main/install.sh | 
 | `alt+f` | Toggle fullscreen |
 | `alt+left/right` | Previous/next workspace |
 
-### Claude Code (Cursor / VS Code)
+### Claude Code
 
 Notifications fire automatically after installation. Start a new Claude Code session and you'll receive alerts when:
 - The agent finishes a task and is ready for input
@@ -225,6 +231,17 @@ Click the notification to focus the IDE window.
 ### OpenCode
 
 The OpenCode plugin hooks into `session.idle` and `permission.asked` events — no extra configuration needed after install. Notifications appear with "OpenCode" prefix.
+
+### Codex CLI
+
+The Codex CLI plugin handles `agent-turn-complete` events via a Python script. After installation, add the notification hook to your Codex config:
+
+```toml
+# ~/.codex/config.toml
+notify = ["python3", "~/.codex/agentpong.py"]
+```
+
+Notifications appear with "Codex" prefix. Codex CLI currently only supports task-completion notifications (no permission hooks).
 
 ### Alfred Project Switcher
 
@@ -254,21 +271,21 @@ Claude Code hooks don't fire in standalone terminals. Set up iTerm Triggers inst
 └─────────────────┘     └──────────────────┘     └────────┬─────────┘
                                                           │
 ┌─────────────────┐     ┌──────────────────┐             │ click
-│  OpenCode       │────▶│  agentpong.ts    │             ▼
-│  session.idle   │     │  (plugin)        │    ┌─────────────────┐
+│  Codex CLI      │────▶│  agentpong.py    │             ▼
+│  notify hook    │     │  (plugin)        │    ┌─────────────────┐
 └─────────────────┘     └──────────────────┘    │ focus-window.sh │
                                                  └────────┬────────┘
-                                                          │
-                                                          ▼
-                                                 ┌─────────────────┐
-                                                 │    AeroSpace    │
+┌─────────────────┐     ┌──────────────────┐             │
+│  OpenCode       │────▶│  agentpong.ts    │             ▼
+│  session.idle   │     │  (plugin)        │    ┌─────────────────┐
+└─────────────────┘     └──────────────────┘    │    AeroSpace    │
                                                  │  (focus window) │
                                                  └─────────────────┘
 ```
 
 ### Notification Flow
 
-1. Hook fires (`Stop`/`PermissionRequest` for Claude Code; `session.idle`/`permission.asked` for OpenCode)
+1. Hook fires (`Stop`/`PermissionRequest` for Claude Code; `agent-turn-complete` for Codex CLI; `session.idle`/`permission.asked` for OpenCode)
 2. `notify.sh` sends a notification via `terminal-notifier` with the project workspace name
 3. Clicking the notification executes `focus-window.sh`
 4. The focus script finds and focuses the correct IDE window via AeroSpace
@@ -295,7 +312,7 @@ AeroSpace uses its own virtual workspace abstraction that bypasses these limitat
 
 ## 🐳 claude-sandbox Integration
 
-If you run Claude Code inside [claude-sandbox](https://github.com/tsilva/claude-sandbox), notifications can still reach your macOS desktop via TCP.
+If you run Claude Code inside [claudebox](https://github.com/tsilva/claudebox), notifications can still reach your macOS desktop via TCP.
 
 During installation, select "yes" when asked about sandbox support. This installs:
 - A launchd service that listens on `localhost:19223`
@@ -333,7 +350,7 @@ This removes:
 - `~/.aerospace.toml` (with prompt, since you may have customized it)
 - Alfred workflow (if installed)
 - Re-enables macOS animations
-- OpenCode plugin and sandbox support (if installed)
+- OpenCode plugin, Codex CLI plugin, and sandbox support (if installed)
 
 AeroSpace itself is **not** removed. To uninstall it: `brew uninstall aerospace`
 
@@ -365,7 +382,7 @@ brew uninstall terminal-notifier
 
 ### Hooks don't fire
 
-Claude Code and OpenCode hooks only work in IDE-integrated terminals (Cursor/VS Code). For standalone terminals like iTerm2, use the Triggers workaround described in [Usage](#-usage).
+Claude Code and OpenCode hooks only work in IDE-integrated terminals (Cursor/VS Code). Codex CLI hooks work in any terminal. For standalone terminals running Claude Code, use the iTerm Triggers workaround described in [Usage](#-usage).
 
 ### Run health check
 
