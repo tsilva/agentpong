@@ -31,6 +31,8 @@ TITLE=$(echo "$LINE" | cut -f2)
 # Determine tool directory from notification title
 if echo "$TITLE" | grep -q "OpenCode"; then
     TOOL_DIR=".opencode"
+elif echo "$TITLE" | grep -q "Codex"; then
+    TOOL_DIR=".codex"
 else
     TOOL_DIR=".claude"
 fi
