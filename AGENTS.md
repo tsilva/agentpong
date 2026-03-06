@@ -12,10 +12,9 @@ The system has two main subsystems:
 
 ### 1. Workspace Management (from aerospace-setup)
 - `config/aerospace.toml` -- AeroSpace tiling window manager configuration
-- `src/aerospace-fix-cursor.sh` -- Organizes Cursor windows into numbered workspaces by project priority
-- `src/alfred-focus-window.sh` -- Alfred workflow action: focus window by ID or open new project
+- `src/sort-workspaces.sh` -- Organizes Cursor windows into numbered workspaces by project priority
+- `src/open-project.sh` -- Alfred workflow action: focus window by ID or open new project
 - `src/list-all-repos.sh` -- Alfred script filter: lists all repos with open/closed status
-- `src/list-cursor-windows.sh` -- Alfred script filter: lists open Cursor windows
 - `src/toggle-animations.sh` -- Disables/enables macOS animations for snappier workspace switching
 - `src/alfred-search.sh` -- Opens Alfred with a keyword pre-filled
 

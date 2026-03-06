@@ -115,7 +115,7 @@ SANDBOX_DIR="$HOME/.claude-sandbox"
 SANDBOX_CONFIG_DIR="$SANDBOX_DIR/claude-config"
 SANDBOX_NOTIFY_SCRIPT="$SANDBOX_CONFIG_DIR/notify.sh"
 SANDBOX_SETTINGS_FILE="$SANDBOX_CONFIG_DIR/settings.json"
-SANDBOX_HANDLER="$CLAUDE_DIR/notify-handler.sh"
+SANDBOX_HANDLER="$CLAUDE_DIR/notify-listener.sh"
 SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.agentpong.sandbox.plist"
 
 # OpenCode paths
@@ -132,10 +132,9 @@ OPENCODE_CONFIG_SETTINGS="$HOME/.config/opencode/settings.json"
 AEROSPACE_CONFIG_DIR="$HOME/.config/aerospace"
 AEROSPACE_TOML="$HOME/.aerospace.toml"
 AEROSPACE_SCRIPTS=(
-    "aerospace-fix-cursor.sh"
-    "alfred-focus-window.sh"
+    "sort-workspaces.sh"
+    "open-project.sh"
     "list-all-repos.sh"
-    "list-cursor-windows.sh"
     "toggle-animations.sh"
     "alfred-search.sh"
 )

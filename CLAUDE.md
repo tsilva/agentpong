@@ -29,14 +29,13 @@ agentpong/
 │   ├── focus-window.sh                    # Notification click → focus by workspace name
 │   ├── pong.sh                            # Notification cycling (alt+n keybinding)
 │   ├── style.sh                           # Terminal styling library
-│   ├── aerospace-fix-cursor.sh            # Organize Cursor windows by priority (alt+s)
-│   ├── alfred-focus-window.sh             # Alfred → focus by window ID or open project
+│   ├── sort-workspaces.sh                 # Organize Cursor windows by priority (alt+s)
+│   ├── open-project.sh                    # Alfred → focus by window ID or open project
 │   ├── list-all-repos.sh                  # Alfred Script Filter: list all repos
-│   ├── list-cursor-windows.sh             # Alfred Script Filter: list Cursor windows
 │   ├── toggle-animations.sh               # Disable/enable macOS animations
 │   ├── alfred-search.sh                   # Open Alfred with keyword pre-filled
-│   ├── notify-handler.sh                  # TCP listener for sandbox
-│   └── notify-sandbox.sh                  # Container notification script
+│   ├── notify-listener.sh                 # TCP listener for sandbox
+│   └── notify-container.sh               # Container notification script
 ├── plugins/                                # IDE/editor plugins
 │   └── opencode/
 │       └── agentpong.ts                   # OpenCode TypeScript plugin
@@ -47,8 +46,7 @@ agentpong/
 ├── alfred/                                 # Alfred workflows
 │   └── cursor-project-switcher/
 │       └── info.plist                     # Alfred workflow definition
-├── assets/                                 # Images and media
-│   └── logo.png
+├── logo.png                                # Project logo
 └── logs/                                   # Runtime logs
 ```
 
@@ -62,10 +60,9 @@ Scripts are installed to different locations based on their purpose:
 | `src/focus-window.sh` | `~/.claude/focus-window.sh` | Notification click handler |
 | `src/pong.sh` | `~/.claude/pong.sh` | Notification cycling |
 | `src/style.sh` | `~/.claude/style.sh` | Styling library |
-| `src/aerospace-fix-cursor.sh` | `~/.config/aerospace/aerospace-fix-cursor.sh` | Window organization |
-| `src/alfred-focus-window.sh` | `~/.config/aerospace/focus-window.sh` | Alfred focus handler |
+| `src/sort-workspaces.sh` | `~/.config/aerospace/sort-workspaces.sh` | Window organization |
+| `src/open-project.sh` | `~/.config/aerospace/open-project.sh` | Alfred project handler |
 | `src/list-all-repos.sh` | `~/.config/aerospace/list-all-repos.sh` | Alfred script filter |
-| `src/list-cursor-windows.sh` | `~/.config/aerospace/list-cursor-windows.sh` | Alfred script filter |
 | `src/toggle-animations.sh` | `~/.config/aerospace/toggle-animations.sh` | Animation toggle |
 | `src/alfred-search.sh` | `~/.config/aerospace/alfred-search.sh` | Alfred launcher |
 | `config/aerospace.toml` | `~/.aerospace.toml` | AeroSpace config |
@@ -78,10 +75,6 @@ AeroSpace is a core requirement (no AppleScript fallback):
 - AppleScript's `AXRaise` and URL schemes (`cursor://`, `vscode://`) cannot switch between macOS Spaces
 - AeroSpace uses its own virtual workspace abstraction that works reliably on macOS 14+ (Sequoia)
 - If AeroSpace binary is not found, focus-window.sh exits with an error
-
-**Two focus-window.sh scripts** exist for different purposes:
-- `src/focus-window.sh` -- Notification click handler. Finds window by workspace name, installed to `~/.claude/focus-window.sh`
-- `src/alfred-focus-window.sh` -- Alfred action handler. Focuses by window ID or opens new project, installed to `~/.config/aerospace/focus-window.sh`
 
 **`list-all-repos.sh`** uses `${AGENTPONG_REPOS_DIR:-$HOME/repos}` to locate repositories. Users can override this with the environment variable.
 
@@ -103,7 +96,7 @@ Test focus script:
 
 Test window organization:
 ```bash
-./src/aerospace-fix-cursor.sh
+./src/sort-workspaces.sh
 ```
 
 Test installation:

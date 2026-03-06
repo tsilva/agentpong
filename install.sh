@@ -694,7 +694,7 @@ run_health_check() {
 
     # Check AeroSpace scripts
     step "Checking AeroSpace scripts..."
-    local aero_scripts=("aerospace-fix-cursor.sh" "alfred-focus-window.sh" "list-all-repos.sh" "list-cursor-windows.sh" "toggle-animations.sh" "alfred-search.sh")
+    local aero_scripts=("sort-workspaces.sh" "open-project.sh" "list-all-repos.sh" "toggle-animations.sh" "alfred-search.sh")
     for script in "${aero_scripts[@]}"; do
         if [[ -f "$HOME/.config/aerospace/$script" && -x "$HOME/.config/aerospace/$script" ]]; then
             success "$script present and executable"
@@ -1514,21 +1514,21 @@ install_sandbox_support() {
     dry_aware_mkdir "$HOME/Library/LaunchAgents"
     
     # Copy handler script
-    if needs_update "$SRC_DIR/notify-handler.sh" "$SANDBOX_HANDLER"; then
-        dry_aware_copy "$SRC_DIR/notify-handler.sh" "$SANDBOX_HANDLER" "notify-handler.sh"
-        success "Updated notify-handler.sh"
+    if needs_update "$SRC_DIR/notify-listener.sh" "$SANDBOX_HANDLER"; then
+        dry_aware_copy "$SRC_DIR/notify-listener.sh" "$SANDBOX_HANDLER" "notify-listener.sh"
+        success "Updated notify-listener.sh"
         sandbox_updated=true
     else
-        dim "notify-handler.sh is up to date"
+        dim "notify-listener.sh is up to date"
     fi
     
     # Copy sandbox notify script
-    if needs_update "$SRC_DIR/notify-sandbox.sh" "$SANDBOX_NOTIFY_SCRIPT"; then
-        dry_aware_copy "$SRC_DIR/notify-sandbox.sh" "$SANDBOX_NOTIFY_SCRIPT" "notify-sandbox.sh"
-        success "Updated notify-sandbox.sh"
+    if needs_update "$SRC_DIR/notify-container.sh" "$SANDBOX_NOTIFY_SCRIPT"; then
+        dry_aware_copy "$SRC_DIR/notify-container.sh" "$SANDBOX_NOTIFY_SCRIPT" "notify-container.sh"
+        success "Updated notify-container.sh"
         sandbox_updated=true
     else
-        dim "notify-sandbox.sh is up to date"
+        dim "notify-container.sh is up to date"
     fi
     
     # Generate and install plist
@@ -1704,7 +1704,7 @@ main() {
     SANDBOX_CONFIG_DIR="$SANDBOX_DIR/claude-config"
     SANDBOX_NOTIFY_SCRIPT="$SANDBOX_CONFIG_DIR/notify.sh"
     SANDBOX_SETTINGS_FILE="$SANDBOX_CONFIG_DIR/settings.json"
-    SANDBOX_HANDLER="$CLAUDE_DIR/notify-handler.sh"
+    SANDBOX_HANDLER="$CLAUDE_DIR/notify-listener.sh"
     SANDBOX_PLIST_TEMPLATE="$CONFIG_DIR/com.agentpong.sandbox.plist.template"
     SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.agentpong.sandbox.plist"
     
@@ -1713,10 +1713,9 @@ main() {
     AEROSPACE_TOML_DST="$HOME/.aerospace.toml"
     AEROSPACE_TOML_SRC="$CONFIG_DIR/aerospace.toml"
     AEROSPACE_SCRIPTS=(
-        "aerospace-fix-cursor.sh"
-        "alfred-focus-window.sh"
+        "sort-workspaces.sh"
+        "open-project.sh"
         "list-all-repos.sh"
-        "list-cursor-windows.sh"
         "toggle-animations.sh"
         "alfred-search.sh"
     )
