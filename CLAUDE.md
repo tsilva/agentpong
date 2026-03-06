@@ -19,7 +19,6 @@ Companion projects that enhance the supervisor workflow:
 - **[claudebox](https://github.com/tsilva/claudebox)** -- Sandboxed Claude Code execution (no permission prompts)
 - **[capture](https://github.com/tsilva/capture)** -- Instant thought capture to Gmail
 - **[claudebridge](https://github.com/tsilva/claudebridge)** -- OpenAI-compatible API bridge for Claude Max
-- **[gita](https://github.com/nosarthur/gita)** -- Multi-repo git status overview
 
 ## Supported Tools
 

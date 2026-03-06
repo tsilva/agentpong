@@ -137,7 +137,6 @@ agentpong is the core of a broader workflow. These companion projects enhance th
 |---------|-------------|
 | [capture](https://github.com/tsilva/capture) | Instant thought capture to Gmail — dump ideas without breaking flow |
 | [claudebridge](https://github.com/tsilva/claudebridge) | OpenAI-compatible API bridge for Claude Max subscriptions |
-| [gita](https://github.com/nosarthur/gita) | Multi-repo git status overview — bird's eye view across all projects |
 
 ## 📋 Requirements
 
