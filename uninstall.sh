@@ -165,10 +165,7 @@ main() {
     }
     trap _uninstall_cleanup EXIT INT TERM HUP QUIT
 
-    # Pong intro + tagline
     ring_bell
-    pong_intro ""
-    typewrite "Time to say goodbye."
 
     header "agentpong" "Uninstaller v${UNINSTALL_VERSION}"
 
@@ -409,7 +406,6 @@ main() {
         fi
     fi
 
-    celebration 1.5 "Uninstallation complete!"
     ring_bell
     banner "Uninstallation complete!"
 
