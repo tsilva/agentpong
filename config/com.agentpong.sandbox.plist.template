@@ -7,15 +7,15 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>__HOME__/.claude/notify-handler.sh</string>
+        <string>__HOME__/.claude/notify-listener.sh</string>
     </array>
     <key>KeepAlive</key>
     <true/>
     <key>RunAtLoad</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>__HOME__/.claude-sandbox/notify-handler.log</string>
+    <string>__HOME__/.claude-sandbox/notify-listener.log</string>
     <key>StandardErrorPath</key>
-    <string>__HOME__/.claude-sandbox/notify-handler.log</string>
+    <string>__HOME__/.claude-sandbox/notify-listener.log</string>
 </dict>
 </plist>

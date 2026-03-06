@@ -215,7 +215,7 @@ Claude Code hooks don't fire in standalone terminals. Set up iTerm Triggers inst
 ### Workspace Management Flow
 
 1. `aerospace.toml` defines keybindings and auto-assigns apps to workspaces
-2. `alt+s` triggers `aerospace-fix-cursor.sh` which:
+2. `alt+s` triggers `sort-workspaces.sh` which:
    - Unminimizes all Cursor windows
    - Reads priority order from `cursor-projects.txt`
    - Moves windows to numbered workspaces (starting at 2)
@@ -302,7 +302,7 @@ brew uninstall terminal-notifier
 ### alt+s doesn't organize windows
 
 1. Check `~/.config/aerospace/cursor-projects.txt` exists and has entries
-2. Check scripts are installed: `ls ~/.config/aerospace/aerospace-fix-cursor.sh`
+2. Check scripts are installed: `ls ~/.config/aerospace/sort-workspaces.sh`
 3. Check AeroSpace config is loaded: `aerospace reload-config`
 
 ### Hooks don't fire

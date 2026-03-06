@@ -38,7 +38,7 @@ alt-right = 'workspace next'
 alt-left = 'workspace prev'
 
 # Sort/organize Cursor windows into workspaces
-alt-s = 'exec-and-forget ~/.config/aerospace/aerospace-fix-cursor.sh'
+alt-s = 'exec-and-forget ~/.config/aerospace/sort-workspaces.sh'
 
 # Alfred workflow
 alt-p = 'exec-and-forget ~/.config/aerospace/alfred-search.sh p'

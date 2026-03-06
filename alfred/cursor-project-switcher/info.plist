@@ -87,7 +87,7 @@
 				<key>escaping</key>
 				<integer>102</integer>
 				<key>script</key>
-				<string>/bin/bash __HOME__/.config/aerospace/focus-window.sh "{query}"</string>
+				<string>/bin/bash __HOME__/.config/aerospace/open-project.sh "{query}"</string>
 				<key>scriptargtype</key>
 				<integer>0</integer>
 				<key>scriptfile</key>

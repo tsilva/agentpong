@@ -28,7 +28,7 @@ if [ "$action" = "new" ]; then
     sleep 2
 
     # Run rearrange script
-    "$HOME/.config/aerospace/aerospace-fix-cursor.sh"
+    "$HOME/.config/aerospace/sort-workspaces.sh"
 
     # Find the new Cursor window for this project and focus it
     new_wid=$("$AEROSPACE" list-windows --all --format '%{window-id}|%{app-name}|%{window-title}' 2>/dev/null | \
