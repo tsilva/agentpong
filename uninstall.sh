@@ -115,6 +115,7 @@ SANDBOX_DIR="$HOME/.claude-sandbox"
 SANDBOX_CONFIG_DIR="$SANDBOX_DIR/claude-config"
 SANDBOX_NOTIFY_SCRIPT="$SANDBOX_CONFIG_DIR/notify.sh"
 SANDBOX_SETTINGS_FILE="$SANDBOX_CONFIG_DIR/settings.json"
+SANDBOX_TOKEN_FILE="$SANDBOX_CONFIG_DIR/agentpong.token"
 SANDBOX_HANDLER="$CLAUDE_DIR/notify-listener.sh"
 SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.agentpong.sandbox.plist"
 
@@ -236,6 +237,10 @@ main() {
     if [[ -f "$SANDBOX_NOTIFY_SCRIPT" ]]; then
         list_item "Remove" "$SANDBOX_NOTIFY_SCRIPT"
         items_to_remove+=("$SANDBOX_NOTIFY_SCRIPT")
+    fi
+    if [[ -f "$SANDBOX_TOKEN_FILE" ]]; then
+        list_item "Remove" "$SANDBOX_TOKEN_FILE"
+        items_to_remove+=("$SANDBOX_TOKEN_FILE")
     fi
 
     # Check OpenCode

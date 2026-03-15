@@ -459,158 +459,13 @@ show_json_diff() {
 
 run_uninstall() {
     log "INFO" "Starting uninstallation"
-    
-    section "Uninstallation Preview"
-    
-    # Check what will be removed
-    local items_to_remove=()
-    
-    if [[ -f "$NOTIFY_SCRIPT" ]]; then
-        list_item "Remove" "$NOTIFY_SCRIPT"
-        items_to_remove+=("$NOTIFY_SCRIPT")
-    fi
-    
-    if [[ -f "$STYLE_SCRIPT" ]]; then
-        list_item "Remove" "$STYLE_SCRIPT"
-        items_to_remove+=("$STYLE_SCRIPT")
-    fi
-    
-    if [[ -f "$FOCUS_SCRIPT_DST" ]]; then
-        list_item "Remove" "$FOCUS_SCRIPT_DST"
-        items_to_remove+=("$FOCUS_SCRIPT_DST")
-    fi
-    
-    if [[ -f "$PONG_SCRIPT_DST" ]]; then
-        list_item "Remove" "$PONG_SCRIPT_DST"
-        items_to_remove+=("$PONG_SCRIPT_DST")
-    fi
-    
-    if [[ -f "$SANDBOX_HANDLER" ]]; then
-        list_item "Remove" "$SANDBOX_HANDLER"
-        items_to_remove+=("$SANDBOX_HANDLER")
-    fi
-    
-    if [[ -f "$SANDBOX_PLIST" ]]; then
-        list_item "Unload & Remove" "launchd service"
-    fi
-    
-    # Check hooks
-    if [[ -f "$SETTINGS_FILE" ]] && command -v jq &> /dev/null; then
-        if jq -e '.hooks.Stop' "$SETTINGS_FILE" > /dev/null 2>&1; then
-            list_item "Remove" "Stop hook from settings.json"
-        fi
-        if jq -e '.hooks.PermissionRequest' "$SETTINGS_FILE" > /dev/null 2>&1; then
-            list_item "Remove" "PermissionRequest hook from settings.json"
-        fi
-    fi
-    
-    # OpenCode cleanup
-    if [[ -f "$OPENCODE_NOTIFY_SCRIPT" ]]; then
-        list_item "Remove" "$OPENCODE_NOTIFY_SCRIPT"
-    fi
-    if [[ -f "$OPENCODE_PLUGIN_FILE" ]]; then
-        list_item "Remove" "OpenCode plugin"
-    fi
-    
-    if [[ ${#items_to_remove[@]} -eq 0 ]]; then
-        info "Nothing to uninstall - agentpong doesn't appear to be installed"
-        return 0
-    fi
-    
-    echo ""
-    
-    if [[ "$DRY_RUN" == true ]]; then
-        info "Dry-run mode - no changes made"
-        return 0
-    fi
-    
-    if [[ "$QUIET_MODE" != true ]]; then
-        confirm "Proceed with uninstallation?"
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            info "Uninstallation cancelled"
-            return 0
-        fi
-    fi
-    
-    section "Removing files..."
-    
-    # Remove files
-    for file in "${items_to_remove[@]}"; do
-        if [[ -f "$file" ]]; then
-            dry_aware_remove "$file" "$(basename "$file")"
-            success "Removed $(basename "$file")"
-        fi
-    done
-    
-    # Remove hooks from settings.json
-    if [[ -f "$SETTINGS_FILE" ]] && command -v jq &> /dev/null; then
-        step "Cleaning up settings.json..."
-        
-        if [[ ! -f "$SETTINGS_FILE.backup" ]]; then
-            cp "$SETTINGS_FILE" "$SETTINGS_FILE.backup"
-            add_rollback "mv '$SETTINGS_FILE.backup' '$SETTINGS_FILE' 2>/dev/null || true"
-        fi
-        
-        local modified=false
-        
-        if jq -e '.hooks.Stop' "$SETTINGS_FILE" > /dev/null 2>&1; then
-            dry_aware_jq 'del(.hooks.Stop)' "$SETTINGS_FILE" "$SETTINGS_FILE.tmp"
-            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            success "Removed Stop hook"
-            modified=true
-        fi
-        
-        if jq -e '.hooks.PermissionRequest' "$SETTINGS_FILE" > /dev/null 2>&1; then
-            dry_aware_jq 'del(.hooks.PermissionRequest)' "$SETTINGS_FILE" "$SETTINGS_FILE.tmp"
-            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            success "Removed PermissionRequest hook"
-            modified=true
-        fi
-        
-        # Clean up empty hooks object
-        if [[ "$modified" == true ]] && jq -e '.hooks == {}' "$SETTINGS_FILE" > /dev/null 2>&1; then
-            dry_aware_jq 'del(.hooks)' "$SETTINGS_FILE" "$SETTINGS_FILE.tmp"
-            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-        fi
-        
-        if [[ "$modified" == false ]]; then
-            dim "No hooks to remove"
-        fi
-    fi
-    
-    # Unload launchd service
-    if [[ -f "$SANDBOX_PLIST" ]]; then
-        step "Unloading launchd service..."
-        if [[ "$DRY_RUN" == false ]]; then
-            launchctl unload "$SANDBOX_PLIST" 2>/dev/null || true
-            dry_aware_remove "$SANDBOX_PLIST" "launchd plist"
-            success "Removed launchd service"
-        fi
-    fi
-    
-    # Remove sandbox files
-    if [[ -f "$SANDBOX_NOTIFY_SCRIPT" ]]; then
-        dry_aware_remove "$SANDBOX_NOTIFY_SCRIPT" "sandbox notify script"
-        success "Removed sandbox notify script"
-    fi
-    
-    # Clean up OpenCode
-    if [[ -f "$OPENCODE_NOTIFY_SCRIPT" ]]; then
-        dry_aware_remove "$OPENCODE_NOTIFY_SCRIPT" "opencode notify script"
-        success "Removed OpenCode notify script"
-    fi
-    if [[ -f "$OPENCODE_PLUGIN_FILE" ]]; then
-        dry_aware_remove "$OPENCODE_PLUGIN_FILE" "opencode plugin"
-        success "Removed OpenCode plugin"
-    fi
-    
-    banner "Uninstallation complete!"
-    
-    note "terminal-notifier was not removed (you may have other uses for it)."
-    dim "To fully remove it: brew uninstall terminal-notifier"
-    
-    INSTALL_SUCCEEDED=true
-    log "INFO" "Uninstallation completed successfully"
+
+    local uninstall_args=()
+    [[ "$DRY_RUN" == true ]] && uninstall_args+=(--dry-run)
+    [[ "$FORCE_INSTALL" == true ]] && uninstall_args+=(--force)
+    [[ "$QUIET_MODE" == true ]] && uninstall_args+=(--quiet)
+
+    exec bash "$SCRIPT_DIR/uninstall.sh" "${uninstall_args[@]}"
 }
 
 # =============================================================================
@@ -1239,7 +1094,7 @@ run_install() {
         echo ""
         gradient_text "  Ready to pong." purple cyan
         echo ""
-        info "Cursor/VS Code: Works automatically"
+        info "Cursor: Works automatically"
         dim "Start a new Claude session to test"
         echo ""
         info "iTerm2: Set up Triggers for standalone use"
@@ -1573,6 +1428,21 @@ install_sandbox_support() {
     # Create directories
     dry_aware_mkdir "$SANDBOX_CONFIG_DIR"
     dry_aware_mkdir "$HOME/Library/LaunchAgents"
+
+    step "Ensuring sandbox notification token..."
+    if [[ -f "$SANDBOX_TOKEN_FILE" ]]; then
+        if [[ "$DRY_RUN" == false ]]; then
+            chmod 600 "$SANDBOX_TOKEN_FILE" 2>/dev/null || true
+        fi
+        dim "Sandbox notification token is already present"
+    elif [[ "$DRY_RUN" == false ]]; then
+        openssl rand -hex 16 > "$SANDBOX_TOKEN_FILE"
+        chmod 600 "$SANDBOX_TOKEN_FILE"
+        success "Created sandbox notification token"
+        sandbox_updated=true
+    else
+        dim "[DRY-RUN] Would create sandbox notification token"
+    fi
     
     # Copy handler script
     if needs_update "$SRC_DIR/notify-listener.sh" "$SANDBOX_HANDLER"; then
@@ -1608,7 +1478,7 @@ install_sandbox_support() {
             
             # Load the service
             launchctl load "$SANDBOX_PLIST"
-            success "Started launchd service (TCP listener on localhost:19223)"
+            success "Started launchd service (token-protected TCP listener on port 19223)"
         fi
     else
         dim "launchd service is up to date"
@@ -1754,6 +1624,7 @@ main() {
     SANDBOX_HANDLER="$CLAUDE_DIR/notify-listener.sh"
     SANDBOX_PLIST_TEMPLATE="$CONFIG_DIR/com.agentpong.sandbox.plist.template"
     SANDBOX_PLIST="$HOME/Library/LaunchAgents/com.agentpong.sandbox.plist"
+    SANDBOX_TOKEN_FILE="$SANDBOX_CONFIG_DIR/agentpong.token"
     
     # AeroSpace paths
     AEROSPACE_CONFIG_DIR="$HOME/.config/aerospace"

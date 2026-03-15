@@ -20,16 +20,16 @@ else
     exit 1
 fi
 
-# Find window ID for Cursor/Code with workspace in title
+# Find window ID for Cursor with workspace in title
 WINDOW_INFO=$("$AEROSPACE" list-windows --all --format '%{window-id}|%{app-name}|%{window-title}|%{workspace}' | \
-    grep -E '(Cursor|Code)' | \
+    grep '|Cursor|' | \
     grep -i "$WORKSPACE" | \
     head -1)
 
 if [ -z "$WINDOW_INFO" ]; then
-    # Fallback: first Cursor/Code window
+    # Fallback: first Cursor window
     WINDOW_INFO=$("$AEROSPACE" list-windows --all --format '%{window-id}|%{app-name}|%{window-title}|%{workspace}' | \
-        grep -E '(Cursor|Code)' | \
+        grep '|Cursor|' | \
         head -1)
 fi
 

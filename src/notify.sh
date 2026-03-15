@@ -11,9 +11,8 @@
 # Optional:
 #   - AeroSpace (for cross-workspace window focus on click)
 #
-# Supported terminals:
+# Supported editor integration:
 #   - Cursor: Full support (notification + optional window focus)
-#   - VS Code: Full support (notification + optional window focus)
 #
 # Usage: notify.sh [message]
 #
