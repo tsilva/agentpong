@@ -95,7 +95,7 @@ This is what makes the supervisor pattern practical — switching between projec
 | Workspace | Keybinding | Purpose |
 |-----------|------------|---------|
 | 1 | `alt+1` | Browser, notes, documentation |
-| 2-9 | `alt+2` - `alt+9` | One Cursor/VS Code window per workspace (each running an AI coding agent) |
+| 2-9 | `alt+2` - `alt+9` | One Cursor window per workspace (each running an AI coding agent) |
 
 High-priority projects get lower numbers for faster access.
 
@@ -142,7 +142,8 @@ agentpong is the core of a broader workflow. These companion projects enhance th
 
 - **macOS** (Sequoia 15.x supported)
 - **Homebrew** for installing dependencies
-- **Cursor**, **VS Code**, or a **terminal** with Claude Code, Codex CLI, or OpenCode
+- **Cursor** for the full workspace-management flow
+- A **terminal** with Claude Code, Codex CLI, or OpenCode for notification-only workflows
 
 ### Installed Automatically
 
@@ -225,11 +226,11 @@ Notifications fire automatically after installation. Start a new Claude Code ses
 - The agent finishes a task and is ready for input
 - The agent needs permission to proceed
 
-Click the notification to focus the IDE window.
+Click the notification to focus the Cursor window.
 
 ### OpenCode
 
-The OpenCode plugin hooks into `session.idle` and `permission.asked` events — no extra configuration needed after install. Notifications appear with "OpenCode" prefix.
+The OpenCode plugin hooks into `session.idle` and permission-request events with no extra configuration after install. Notifications appear with the "OpenCode" prefix.
 
 ### Codex CLI
 
@@ -284,7 +285,7 @@ Claude Code hooks don't fire in standalone terminals. Set up iTerm Triggers inst
 
 ### Notification Flow
 
-1. Hook fires (`Stop`/`PermissionRequest` for Claude Code; `agent-turn-complete` for Codex CLI; `session.idle`/`permission.asked` for OpenCode)
+1. Hook fires (`Stop`/`PermissionRequest` for Claude Code; `agent-turn-complete` for Codex CLI; `session.idle` plus permission-request events for OpenCode)
 2. `notify.sh` sends a notification via `terminal-notifier` with the project workspace name
 3. Clicking the notification executes `focus-window.sh`
 4. The focus script finds and focuses the correct IDE window via AeroSpace
@@ -314,7 +315,7 @@ AeroSpace uses its own virtual workspace abstraction that bypasses these limitat
 If you run Claude Code inside [claudebox](https://github.com/tsilva/claudebox), notifications can still reach your macOS desktop via TCP.
 
 During installation, select "yes" when asked about sandbox support. This installs:
-- A launchd service that listens on `localhost:19223`
+- A launchd service that listens on port `19223` and requires a local shared token
 - A container-compatible notify script that connects via `host.docker.internal`
 - Hooks configured in `~/.claude-sandbox/claude-config/settings.json`
 
@@ -381,7 +382,7 @@ brew uninstall terminal-notifier
 
 ### Hooks don't fire
 
-Claude Code and OpenCode hooks only work in IDE-integrated terminals (Cursor/VS Code). Codex CLI hooks work in any terminal. For standalone terminals running Claude Code, use the iTerm Triggers workaround described in [Usage](#-usage).
+Claude Code and OpenCode hooks are supported in Cursor. Codex CLI hooks work in any terminal. For standalone terminals running Claude Code, use the iTerm Triggers workaround described in [Usage](#-usage).
 
 ### Run health check
 

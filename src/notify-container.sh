@@ -18,12 +18,23 @@ fi
 LAUNCH_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 WORKSPACE="${LAUNCH_DIR##*/}"
 MESSAGE="${1:-Ready for input}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+TOKEN_FILE="$SCRIPT_DIR/agentpong.token"
 
 # host.docker.internal resolves to the Docker host on macOS/Windows
 HOST="host.docker.internal"
 PORT=19223
 
+# Require the shared token so the host listener can reject unauthenticated traffic.
+if [ ! -f "$TOKEN_FILE" ]; then
+    echo "agentpong sandbox token not found: $TOKEN_FILE" >&2
+    exit 1
+fi
+
+TOKEN="$(tr -d '\n' < "$TOKEN_FILE")"
+[ -z "$TOKEN" ] && exit 1
+
 # Send to TCP listener (fire-and-forget)
-(echo "${WORKSPACE}|${MESSAGE}" | nc -w1 "$HOST" "$PORT" &) 2>/dev/null
+(echo "${TOKEN}|${WORKSPACE}|${MESSAGE}" | nc -w1 "$HOST" "$PORT" &) 2>/dev/null
 
 exit 0
