@@ -47,7 +47,7 @@ alt-p = 'exec-and-forget ~/.config/aerospace/alfred-search.sh p'
 alt-f = 'fullscreen'
 
 # Notification cycling — press alt+n to focus the next pending notification
-alt-n = 'exec-and-forget ~/.claude/pong.sh'
+alt-n = '''exec-and-forget /bin/bash -c 'for tool in .claude .codex .opencode .kimi-code; do if [ -x "$HOME/$tool/pong.sh" ]; then exec "$HOME/$tool/pong.sh"; fi; done' '''
 
 # Capture integration (requires: https://github.com/tsilva/capture)
 # Uncomment the line below to enable alt+c for quick note capture

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# agentpong - Kickass Installation Script v3.0.0
-# Version: 3.0.0
+# agentpong - Kickass Installation Script v3.1.0
+# Version: 3.1.0
 #
 # macOS developer workspace management + AI agent notifications, powered by AeroSpace.
 # Features: dry-run, uninstall, auto-detection, health checks, rollback, wizard mode.
@@ -28,7 +28,7 @@ set -e
 # VERSION & CONFIGURATION
 # =============================================================================
 
-AGENTPONG_VERSION="3.0.0"
+AGENTPONG_VERSION="3.1.0"
 REPO_URL="https://github.com/tsilva/agentpong"
 BRANCH="main"
 TEMP_DIR=""
@@ -198,6 +198,8 @@ run_preflight() {
     scan_args+=("Alfred" "{ [[ -d \"\$HOME/Library/Application Support/Alfred\" ]] || [[ -d \"/Applications/Alfred 5.app\" ]]; } && echo 'Detected' || return 1")
     scan_args+=("OpenCode" "{ [[ -d \"\$HOME/.opencode\" ]] || [[ -d \"\$HOME/.config/opencode\" ]] || command -v opencode >/dev/null 2>&1; } && echo 'Detected' || return 1")
     scan_args+=("Codex CLI" "{ [[ -d \"\$HOME/.codex\" ]] || command -v codex >/dev/null 2>&1; } && echo 'Detected' || return 1")
+    scan_args+=("Kimi Code" "{ [[ -d \"\$HOME/.kimi-code\" ]] || command -v kimi >/dev/null 2>&1; } && echo 'Detected' || return 1")
+    scan_args+=("gum (optional TUI)" "command -v gum >/dev/null 2>&1 && echo 'Installed' || return 1")
     scan_args+=("Homebrew" "command -v brew >/dev/null 2>&1 && echo 'Installed' || return 1")
 
     if [[ "${INSTALL_SANDBOX:-false}" == true ]]; then
@@ -218,6 +220,14 @@ run_preflight() {
 detect_installed_tools() {
     log "INFO" "Detecting installed tools"
     
+    # Detect Claude Code
+    if [[ -d "$HOME/.claude" ]] || command -v claude &> /dev/null 2>&1; then
+        DETECTED_CLAUDE=true
+        log "INFO" "Claude Code detected"
+    else
+        DETECTED_CLAUDE=false
+    fi
+
     # Detect OpenCode
     if [[ -d "$HOME/.opencode" ]] || [[ -d "$HOME/.config/opencode" ]] || command -v opencode &> /dev/null 2>&1; then
         DETECTED_OPENCODE=true
@@ -234,6 +244,14 @@ detect_installed_tools() {
         DETECTED_CODEX=false
     fi
     
+    # Detect Kimi Code
+    if [[ -d "$HOME/.kimi-code" ]] || command -v kimi &> /dev/null 2>&1; then
+        DETECTED_KIMI=true
+        log "INFO" "Kimi Code detected"
+    else
+        DETECTED_KIMI=false
+    fi
+
     # Detect sandbox
     if [[ -d "$HOME/.claude-sandbox" ]] || [[ -f "$HOME/.claude-sandbox/claude-config/settings.json" ]]; then
         DETECTED_SANDBOX=true
@@ -479,30 +497,38 @@ run_health_check() {
     
     local all_ok=true
     
-    # Check core files
+    # Check core files (in each tool dir that has agentpong installed)
     step "Checking core files..."
-    local core_files=(
-        "$NOTIFY_SCRIPT"
-        "$STYLE_SCRIPT"
-        "$FOCUS_SCRIPT_DST"
-        "$PONG_SCRIPT_DST"
-    )
-    
-    for file in "${core_files[@]}"; do
-        if [[ -f "$file" && -x "$file" ]]; then
-            success "$(basename "$file") present and executable"
-        elif [[ -f "$file" ]]; then
-            warn "$(basename "$file") present but not executable"
-            all_ok=false
-        else
-            error "$(basename "$file") missing"
-            all_ok=false
+    local found_any=false
+    local tool_dirs=("$HOME/.claude" "$HOME/.codex" "$HOME/.opencode" "$HOME/.kimi-code")
+    for dir in "${tool_dirs[@]}"; do
+        # Skip dirs where agentpong was never installed
+        if [[ ! -f "$dir/notify.sh" && ! -f "$dir/pong.sh" && ! -f "$dir/agentpong.py" && ! -f "$dir/agentpong.sh" ]]; then
+            continue
         fi
+        found_any=true
+        for script in notify.sh style.sh focus-window.sh pong.sh; do
+            if [[ -f "$dir/$script" && -x "$dir/$script" ]]; then
+                success "$script present and executable ($(basename "$dir"))"
+            elif [[ -f "$dir/$script" ]]; then
+                warn "$script present but not executable ($(basename "$dir"))"
+                all_ok=false
+            else
+                error "$script missing ($(basename "$dir"))"
+                all_ok=false
+            fi
+        done
     done
+    if [[ "$found_any" == false ]]; then
+        error "No agentpong scripts found in any tool directory"
+        all_ok=false
+    fi
     
     # Check settings.json hooks
     step "Checking Claude Code hooks..."
-    if [[ -f "$SETTINGS_FILE" ]]; then
+    if [[ ! -f "$NOTIFY_SCRIPT" ]]; then
+        dim "Claude Code integration not installed, skipping"
+    elif [[ -f "$SETTINGS_FILE" ]]; then
         if command -v jq &> /dev/null; then
             if jq -e '.hooks.Stop' "$SETTINGS_FILE" > /dev/null 2>&1; then
                 success "Stop hook configured"
@@ -593,6 +619,28 @@ run_health_check() {
         fi
     fi
     
+    # Check Codex CLI (if installed)
+    if [[ -f "$CODEX_PLUGIN_FILE" ]]; then
+        step "Checking Codex CLI integration..."
+        if [[ -f "$CODEX_CONFIG_FILE" ]] && grep -E '^notify[[:space:]]*=' "$CODEX_CONFIG_FILE" 2>/dev/null | grep -qF 'agentpong'; then
+            success "Codex notify hook configured"
+        else
+            # Warn only: the user may deliberately run a different notify hook
+            warn "Codex notify hook in config.toml does not point at agentpong"
+        fi
+    fi
+
+    # Check Kimi Code (if installed)
+    if [[ -f "$KIMI_PLUGIN_FILE" ]]; then
+        step "Checking Kimi Code integration..."
+        if [[ -f "$KIMI_CONFIG_FILE" ]] && grep -qF '# >>> agentpong >>>' "$KIMI_CONFIG_FILE"; then
+            success "Kimi hooks configured"
+        else
+            warn "Kimi hooks not found in config.toml"
+            all_ok=false
+        fi
+    fi
+
     echo ""
     if [[ "$all_ok" == true ]]; then
         banner "All systems operational!"
@@ -666,9 +714,11 @@ run_wizard() {
     local integration_options=()
     [[ "$DETECTED_OPENCODE" == true ]] && integration_options+=("OpenCode (detected)")
     [[ "$DETECTED_CODEX" == true ]] && integration_options+=("Codex CLI (detected)")
+    [[ "$DETECTED_KIMI" == true ]] && integration_options+=("Kimi (detected)")
     [[ "$DETECTED_SANDBOX" == true ]] && integration_options+=("claude-sandbox (detected)")
     [[ "$DETECTED_OPENCODE" != true ]] && integration_options+=("OpenCode (install anyway)")
     [[ "$DETECTED_CODEX" != true ]] && integration_options+=("Codex CLI (install anyway)")
+    [[ "$DETECTED_KIMI" != true ]] && integration_options+=("Kimi (install anyway)")
     [[ "$DETECTED_SANDBOX" != true ]] && integration_options+=("claude-sandbox (install anyway)")
     
     if [[ ${#integration_options[@]} -gt 0 ]]; then
@@ -676,6 +726,7 @@ run_wizard() {
         
         [[ "$selected" == *"OpenCode"* ]] && INSTALL_OPENCODE=true
         [[ "$selected" == *"Codex"* ]] && INSTALL_CODEX=true
+        [[ "$selected" == *"Kimi"* ]] && INSTALL_KIMI=true
         [[ "$selected" == *"sandbox"* ]] && INSTALL_SANDBOX=true
     fi
     
@@ -691,6 +742,90 @@ run_wizard() {
     echo ""
     info "Configuration complete! Starting installation..."
     success "Let's go!"
+}
+
+# =============================================================================
+# COMPONENT PICKER
+# =============================================================================
+
+# Interactive multi-select of which agents/integrations to install.
+# Sets INSTALL_CLAUDE / INSTALL_CODEX / INSTALL_OPENCODE / INSTALL_KIMI /
+# INSTALL_SANDBOX / INSTALL_ALFRED and PICKER_RAN=true.
+select_components() {
+    log "INFO" "Running component picker"
+
+    # Offer gum for the best selection UI (optional; text fallback exists)
+    if [[ "$_STYLE_HAS_GUM" != true ]] && command -v brew &> /dev/null; then
+        confirm "Install gum for a richer selection UI? (optional)"
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            if [[ "$DRY_RUN" == false ]]; then
+                spin "Installing gum..." brew install gum && _STYLE_HAS_GUM=true
+            fi
+        fi
+    fi
+
+    section "Select Components" "" "" "◆"
+    info "Space to toggle, enter to confirm. Detected agents are pre-selected."
+    echo ""
+
+    # Build option labels; detected ones get a suffix and are pre-selected
+    local -a options=()
+    local -a pre=()
+
+    options+=("Claude Code")
+    [[ "$DETECTED_CLAUDE" == true ]] && options[0]="Claude Code (detected)"
+    pre+=("${options[0]}")
+
+    local label
+    label="Codex CLI"; [[ "$DETECTED_CODEX" == true ]] && label="Codex CLI (detected)"
+    options+=("$label"); [[ "$DETECTED_CODEX" == true ]] && pre+=("$label")
+
+    label="OpenCode"; [[ "$DETECTED_OPENCODE" == true ]] && label="OpenCode (detected)"
+    options+=("$label"); [[ "$DETECTED_OPENCODE" == true ]] && pre+=("$label")
+
+    label="Kimi"; [[ "$DETECTED_KIMI" == true ]] && label="Kimi (detected)"
+    options+=("$label"); [[ "$DETECTED_KIMI" == true ]] && pre+=("$label")
+
+    label="claude-sandbox"; [[ "$DETECTED_SANDBOX" == true ]] && label="claude-sandbox (detected)"
+    options+=("$label"); [[ "$DETECTED_SANDBOX" == true ]] && pre+=("$label")
+
+    if [[ "$DETECTED_ALFRED" == true ]]; then
+        options+=("Alfred workflow (detected)")
+        pre+=("Alfred workflow (detected)")
+    fi
+
+    local joined
+    local IFS=','
+    joined="${pre[*]}"
+    unset IFS
+
+    local selected
+    if ! selected=$(choose_multi --selected "$joined" "Which agents should agentpong hook into?" "${options[@]}"); then
+        echo ""
+        info "Selection cancelled. Nothing was installed."
+        exit 0
+    fi
+
+    INSTALL_CLAUDE=false
+    INSTALL_CODEX=false
+    INSTALL_OPENCODE=false
+    INSTALL_KIMI=false
+    INSTALL_SANDBOX=false
+    INSTALL_ALFRED=false
+
+    while IFS= read -r line; do
+        case "$line" in
+            "Claude Code"*)     INSTALL_CLAUDE=true ;;
+            "Codex CLI"*)       INSTALL_CODEX=true ;;
+            "OpenCode"*)        INSTALL_OPENCODE=true ;;
+            "Kimi"*)            INSTALL_KIMI=true ;;
+            "claude-sandbox"*)  INSTALL_SANDBOX=true ;;
+            "Alfred workflow"*) INSTALL_ALFRED=true ;;
+        esac
+    done <<< "$selected"
+
+    PICKER_RAN=true
+    log "INFO" "Selected: claude=$INSTALL_CLAUDE codex=$INSTALL_CODEX opencode=$INSTALL_OPENCODE kimi=$INSTALL_KIMI sandbox=$INSTALL_SANDBOX alfred=$INSTALL_ALFRED"
 }
 
 # =============================================================================
@@ -718,6 +853,12 @@ run_install() {
     # Run wizard if requested
     if [[ "$WIZARD_MODE" == true ]]; then
         run_wizard
+    fi
+
+    # Interactive component picker (multi-select TUI)
+    PICKER_RAN="${PICKER_RAN:-false}"
+    if [[ "$WIZARD_MODE" != true && -t 0 && "$QUIET_MODE" != true && "$UPDATE_MODE" != true && "$DRY_RUN" != true ]]; then
+        select_components
     fi
     
     # Phase 2: Dependencies
@@ -788,7 +929,12 @@ run_install() {
         success "AeroSpace already installed"
     fi
     
-    # Install core files
+    # Install core files (Claude Code integration)
+    if [[ "${INSTALL_CLAUDE:-true}" != true ]]; then
+        section "Setting up Claude Code integration" "" "" "⚙"
+        dim "Skipping Claude Code integration (not selected)"
+    fi
+    if [[ "${INSTALL_CLAUDE:-true}" == true ]]; then
     section "Setting up Claude Code integration" "" "" "⚙"
     
     dry_aware_mkdir "$CLAUDE_DIR"
@@ -967,12 +1113,13 @@ run_install() {
     if [[ "$DRY_RUN" == false ]]; then
         killall terminal-notifier 2>/dev/null && success "Restarted terminal-notifier" || dim "No running terminal-notifier processes"
     fi
+    fi # end Claude Code integration
 
     # Phase 3: AeroSpace Config
     install_aerospace_config
 
     # Phase 5: Alfred Workflow (optional)
-    if [[ "$DETECTED_ALFRED" == true ]]; then
+    if [[ "${INSTALL_ALFRED:-$DETECTED_ALFRED}" == true ]]; then
         install_alfred_workflow
     else
         section "Alfred Workflow" "" "" "⚙"
@@ -1001,7 +1148,7 @@ run_install() {
     # OpenCode support
     if [[ "${INSTALL_OPENCODE:-$DETECTED_OPENCODE}" == true ]]; then
         install_opencode_support
-    elif [[ "$UPDATE_MODE" != true && "$QUIET_MODE" != true && "$DETECTED_OPENCODE" == false ]]; then
+    elif [[ "$PICKER_RAN" != true && "$UPDATE_MODE" != true && "$QUIET_MODE" != true && "$DETECTED_OPENCODE" == false ]]; then
         echo ""
         confirm "Install OpenCode support?"
         if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -1012,7 +1159,7 @@ run_install() {
     # Codex CLI support
     if [[ "${INSTALL_CODEX:-$DETECTED_CODEX}" == true ]]; then
         install_codex_support
-    elif [[ "$UPDATE_MODE" != true && "$QUIET_MODE" != true && "$DETECTED_CODEX" == false ]]; then
+    elif [[ "$PICKER_RAN" != true && "$UPDATE_MODE" != true && "$QUIET_MODE" != true && "$DETECTED_CODEX" == false ]]; then
         echo ""
         confirm "Install Codex CLI support?"
         if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -1020,10 +1167,21 @@ run_install() {
         fi
     fi
     
+    # Kimi Code support
+    if [[ "${INSTALL_KIMI:-$DETECTED_KIMI}" == true ]]; then
+        install_kimi_support
+    elif [[ "$PICKER_RAN" != true && "$UPDATE_MODE" != true && "$QUIET_MODE" != true && "$DETECTED_KIMI" == false ]]; then
+        echo ""
+        confirm "Install Kimi Code support?"
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            install_kimi_support
+        fi
+    fi
+
     # Sandbox support
     if [[ "${INSTALL_SANDBOX:-$DETECTED_SANDBOX}" == true ]]; then
         install_sandbox_support
-    elif [[ "$UPDATE_MODE" != true && "$QUIET_MODE" != true && "$DETECTED_SANDBOX" == false ]]; then
+    elif [[ "$PICKER_RAN" != true && "$UPDATE_MODE" != true && "$QUIET_MODE" != true && "$DETECTED_SANDBOX" == false ]]; then
         echo ""
         confirm "Install claude-sandbox support?"
         if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -1046,6 +1204,10 @@ run_install() {
 
     if [[ "${INSTALL_CODEX:-false}" == true || -f "$CODEX_PLUGIN_FILE" ]]; then
         summary_items+=("Codex CLI" "✓ Enabled")
+    fi
+
+    if [[ "${INSTALL_KIMI:-false}" == true || -f "$KIMI_PLUGIN_FILE" ]]; then
+        summary_items+=("Kimi" "✓ Enabled")
     fi
 
     if [[ "${INSTALL_SANDBOX:-false}" == true || -f "$SANDBOX_PLIST" ]]; then
@@ -1401,14 +1563,38 @@ install_codex_support() {
         chmod +x "$CODEX_PLUGIN_FILE"
     fi
     
+    # Configure notify hook in config.toml
+    step "Configuring Codex CLI notify hook..."
+    if [[ -f "$CODEX_CONFIG_FILE" ]] && grep -qE '^notify[[:space:]]*=' "$CODEX_CONFIG_FILE"; then
+        if grep -E '^notify[[:space:]]*=' "$CODEX_CONFIG_FILE" | grep -qF 'agentpong'; then
+            dim "Codex notify hook already configured"
+        else
+            warn "Existing notify hook found in $CODEX_CONFIG_FILE - leaving it untouched"
+            dim "To use agentpong instead, set: notify = [\"python3\", \"$CODEX_PLUGIN_FILE\"]"
+        fi
+    elif [[ "$DRY_RUN" == false ]]; then
+        if [[ -f "$CODEX_CONFIG_FILE" && ! -f "$CODEX_CONFIG_FILE.backup" ]]; then
+            cp "$CODEX_CONFIG_FILE" "$CODEX_CONFIG_FILE.backup"
+            add_rollback "mv '$CODEX_CONFIG_FILE.backup' '$CODEX_CONFIG_FILE' 2>/dev/null || true"
+        fi
+        # 'notify' is a top-level TOML key: prepend before any [table] headers
+        {
+            printf '# >>> agentpong >>>\nnotify = ["python3", "%s"]\n# <<< agentpong <<<\n\n' "$CODEX_PLUGIN_FILE"
+            if [[ -f "$CODEX_CONFIG_FILE" ]]; then
+                cat "$CODEX_CONFIG_FILE"
+            fi
+        } > "$CODEX_CONFIG_FILE.tmp"
+        mv "$CODEX_CONFIG_FILE.tmp" "$CODEX_CONFIG_FILE"
+        success "Added notify hook to config.toml"
+        codex_updated=true
+    else
+        dim "[DRY-RUN] Would prepend notify hook to $CODEX_CONFIG_FILE"
+    fi
+
     if [[ "$codex_updated" == true && "$DRY_RUN" == false ]]; then
         banner "Codex CLI support installed!"
         info "Codex notifications will appear with workspace names."
-        echo ""
-        dim "To enable notifications, add this to ~/.codex/config.toml:"
-        dim ""
-        dim 'notify = ["python3", "'"$HOME/.codex/agentpong.py"'"]'
-        echo ""
+        dim "Note: Codex only notifies on agent-turn-complete (no permission event)."
     elif [[ "$DRY_RUN" == true && "$codex_updated" == true ]]; then
         dim "Codex: Would update files"
     else
@@ -1416,6 +1602,98 @@ install_codex_support() {
     fi
     
     INSTALL_CODEX=true
+}
+
+install_kimi_support() {
+    log "INFO" "Installing Kimi Code support"
+
+    section "Installing Kimi Code support" "" "" "⚙"
+
+    local kimi_updated=false
+
+    # Create directory
+    dry_aware_mkdir "$KIMI_DIR"
+
+    # Copy files
+    if needs_update "$SRC_DIR/notify.sh" "$KIMI_NOTIFY_SCRIPT"; then
+        dry_aware_copy "$SRC_DIR/notify.sh" "$KIMI_NOTIFY_SCRIPT" "notify.sh"
+        success "Installed notify.sh"
+        kimi_updated=true
+    else
+        dim "notify.sh is up to date"
+    fi
+
+    if needs_update "$SRC_DIR/style.sh" "$KIMI_STYLE_SCRIPT"; then
+        dry_aware_copy "$SRC_DIR/style.sh" "$KIMI_STYLE_SCRIPT" "style.sh"
+        success "Installed style.sh"
+        kimi_updated=true
+    else
+        dim "style.sh is up to date"
+    fi
+
+    if needs_update "$FOCUS_SCRIPT_SRC" "$KIMI_FOCUS_SCRIPT"; then
+        dry_aware_copy "$FOCUS_SCRIPT_SRC" "$KIMI_FOCUS_SCRIPT" "focus-window.sh"
+        success "Installed focus-window.sh"
+        kimi_updated=true
+    else
+        dim "focus-window.sh is up to date"
+    fi
+
+    if needs_update "$PONG_SCRIPT_SRC" "$KIMI_PONG_SCRIPT"; then
+        dry_aware_copy "$PONG_SCRIPT_SRC" "$KIMI_PONG_SCRIPT" "pong.sh"
+        success "Installed pong.sh"
+        kimi_updated=true
+    else
+        dim "pong.sh is up to date"
+    fi
+
+    # Install plugin
+    if needs_update "$PLUGINS_DIR/kimi/agentpong.sh" "$KIMI_PLUGIN_FILE"; then
+        dry_aware_copy "$PLUGINS_DIR/kimi/agentpong.sh" "$KIMI_PLUGIN_FILE" "agentpong.sh"
+        success "Installed Kimi plugin"
+        kimi_updated=true
+    else
+        dim "Kimi plugin is up to date"
+    fi
+
+    # Make plugin executable
+    if [[ -f "$KIMI_PLUGIN_FILE" && "$DRY_RUN" == false ]]; then
+        chmod +x "$KIMI_PLUGIN_FILE"
+    fi
+
+    # Configure hooks in config.toml (appended block is safe: [[hooks]] headers
+    # are absolute TOML paths, and markers let uninstall find the block again)
+    step "Configuring Kimi Code hooks..."
+    if [[ -f "$KIMI_CONFIG_FILE" ]] && grep -qF '# >>> agentpong >>>' "$KIMI_CONFIG_FILE"; then
+        dim "Kimi hooks already configured"
+    elif [[ "$DRY_RUN" == false ]]; then
+        if [[ -f "$KIMI_CONFIG_FILE" && ! -f "$KIMI_CONFIG_FILE.backup" ]]; then
+            cp "$KIMI_CONFIG_FILE" "$KIMI_CONFIG_FILE.backup"
+            add_rollback "mv '$KIMI_CONFIG_FILE.backup' '$KIMI_CONFIG_FILE' 2>/dev/null || true"
+        fi
+        {
+            [[ -s "$KIMI_CONFIG_FILE" ]] && printf '\n'
+            printf '# >>> agentpong >>>\n'
+            printf '[[hooks]]\nevent = "Stop"\ncommand = "bash %s stop"\n\n' "$KIMI_PLUGIN_FILE"
+            printf '[[hooks]]\nevent = "PermissionRequest"\ncommand = "bash %s permission"\n' "$KIMI_PLUGIN_FILE"
+            printf '# <<< agentpong <<<\n'
+        } >> "$KIMI_CONFIG_FILE"
+        success "Added Stop + PermissionRequest hooks to config.toml"
+        kimi_updated=true
+    else
+        dim "[DRY-RUN] Would append hooks to $KIMI_CONFIG_FILE"
+    fi
+
+    if [[ "$kimi_updated" == true && "$DRY_RUN" == false ]]; then
+        banner "Kimi Code support installed!"
+        info "Kimi notifications will appear with workspace names."
+    elif [[ "$DRY_RUN" == true && "$kimi_updated" == true ]]; then
+        dim "Kimi: Would update files"
+    else
+        dim "Kimi Code support is already up to date"
+    fi
+
+    INSTALL_KIMI=true
 }
 
 install_sandbox_support() {
@@ -1663,6 +1941,15 @@ main() {
     CODEX_PLUGIN_FILE="$CODEX_DIR/agentpong.py"
     CODEX_CONFIG_FILE="$HOME/.codex/config.toml"
     
+    # Kimi paths
+    KIMI_DIR="$HOME/.kimi-code"
+    KIMI_NOTIFY_SCRIPT="$KIMI_DIR/notify.sh"
+    KIMI_STYLE_SCRIPT="$KIMI_DIR/style.sh"
+    KIMI_FOCUS_SCRIPT="$KIMI_DIR/focus-window.sh"
+    KIMI_PONG_SCRIPT="$KIMI_DIR/pong.sh"
+    KIMI_PLUGIN_FILE="$KIMI_DIR/agentpong.sh"
+    KIMI_CONFIG_FILE="$KIMI_DIR/config.toml"
+
     # Route to appropriate mode
     if [[ "$UNINSTALL_MODE" == true ]]; then
         run_uninstall

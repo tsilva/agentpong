@@ -377,21 +377,41 @@ choose() {
 }
 
 # Multi-select with checkboxes
+# Usage: choose_multi [--selected "opt1,opt2"] "header" opt1 opt2 ...
+#   --selected: comma-separated options to pre-check (exact match, no commas in labels)
 choose_multi() {
+    local preselected=""
+    if [[ "${1:-}" == "--selected" ]]; then
+        preselected="${2:-}"
+        shift 2
+    fi
     local header="${1:-Select options (space to toggle, enter to confirm)}"
     shift
     local options=("$@")
     
     if [[ "$_STYLE_HAS_GUM" == true ]]; then
-        gum choose --header "  $header" --cursor "  ▸ " \
+        local -a gum_args=(--header "  $header" --cursor "  ▸ " \
             --header.foreground 141 --cursor.foreground 141 \
-            --selected.foreground 212 --no-limit \
-            "${options[@]}"
+            --selected.foreground 212 --no-limit)
+        [[ -n "$preselected" ]] && gum_args+=(--selected "$preselected")
+        gum choose "${gum_args[@]}" "${options[@]}"
         return $?
     else
-        echo "  ${_C_BRAND}${_C_BOLD}${header}:${_C_RESET}"
+        echo "  ${_C_BRAND}${_C_BOLD}${header}:${_C_RESET}" >&2
         local selected=()
         
+        # Seed pre-selected options
+        if [[ -n "$preselected" ]]; then
+            local old_ifs="$IFS"
+            IFS=','
+            local -a _pre=()
+            read -ra _pre <<< "$preselected"
+            IFS="$old_ifs"
+            for pre_opt in "${_pre[@]}"; do
+                selected+=("$pre_opt")
+            done
+        fi
+
         while true; do
             local i=1
             for opt in "${options[@]}"; do
@@ -399,14 +419,14 @@ choose_multi() {
                 for sel in "${selected[@]}"; do
                     [[ "$sel" == "$opt" ]] && checked="●"
                 done
-                echo "  ${checked} ${i}. $opt"
+                echo "  ${checked} ${i}. $opt" >&2
                 ((i++))
             done
             
-            echo ""
-            echo "  ${_C_MUTED}Enter number to toggle, 'd' when done${_C_RESET}"
-            printf "  ${_C_BRAND}▸${_C_RESET} "
-            read -r choice < /dev/tty
+            echo "" >&2
+            echo "  ${_C_MUTED}Enter number to toggle, 'd' when done${_C_RESET}" >&2
+            printf "  ${_C_BRAND}▸${_C_RESET} " >&2
+            read -r choice < /dev/tty || return 1
             
             [[ "$choice" == "d" ]] && break
             
@@ -426,10 +446,12 @@ choose_multi() {
                 selected=("${new_selected[@]}")
             fi
             
-            printf "\033[%dA" $(( ${#options[@]} + 3 ))  # Move cursor up
+            printf "\033[%dA" $(( ${#options[@]} + 3 )) >&2  # Move cursor up
         done
         
-        printf "%s\n" "${selected[@]}"
+        if [[ ${#selected[@]} -gt 0 ]]; then
+            printf "%s\n" "${selected[@]}"
+        fi
     fi
 }
 
