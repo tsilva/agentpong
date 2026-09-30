@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 # agentpong - Notification Script
-# Sends a macOS notification when Claude Code, OpenCode, or Codex CLI is ready for input.
+# Sends a macOS notification when Claude Code, OpenCode, Codex CLI, or Kimi Code
+# is ready for input.
 # If focus-window.sh is installed, clicking the notification focuses the
 # correct IDE window (requires AeroSpace for cross-workspace support).
 #
@@ -40,6 +41,11 @@ elif [ -n "$OPENCODE_PROJECT_DIR" ] || [ -n "$OPENCODE" ]; then
     LAUNCH_DIR="${OPENCODE_PROJECT_DIR:-$PWD}"
     TOOL_NAME="OpenCode"
     TOOL_DIR=".opencode"
+elif [ -n "$KIMI_PROJECT_DIR" ] || [ -n "$KIMI" ]; then
+    # Kimi Code (checks both KIMI_PROJECT_DIR and KIMI env vars)
+    LAUNCH_DIR="${KIMI_PROJECT_DIR:-$PWD}"
+    TOOL_NAME="Kimi"
+    TOOL_DIR=".kimi-code"
 else
     # Manual testing fallback
     LAUNCH_DIR="$PWD"

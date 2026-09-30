@@ -33,6 +33,8 @@ if echo "$TITLE" | grep -q "OpenCode"; then
     TOOL_DIR=".opencode"
 elif echo "$TITLE" | grep -q "Codex"; then
     TOOL_DIR=".codex"
+elif echo "$TITLE" | grep -q "Kimi"; then
+    TOOL_DIR=".kimi-code"
 else
     TOOL_DIR=".claude"
 fi

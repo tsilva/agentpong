@@ -13,10 +13,9 @@ export const agentpong = async ({ directory }: { directory: string }) => {
     event: async ({ event }: { event: { type: string } }) => {
       if (event.type === "session.idle") {
         sendNotification("Ready for input")
+      } else if (event.type === "permission.asked") {
+        sendNotification("Permission required")
       }
-    },
-    "permission.ask": async () => {
-      sendNotification("Permission required")
     },
   }
 }
