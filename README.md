@@ -1,10 +1,10 @@
-<div align="center">
+<p align="center">
   <img src="https://raw.githubusercontent.com/tsilva/agentpong/main/logo.png" alt="agentpong" width="512"/>
-
-  # agentpong
-
-  **🎛️ Supervise multiple AI coding agents in parallel — organized workspaces, instant switching, desktop notifications 🏓**
-</div>
+  <br />
+  <!-- repo-tagline:start -->
+  <strong>🎛️ Supervise AI coding agents across organized workspaces 🏓</strong>
+  <!-- repo-tagline:end -->
+</p>
 
 agentpong is a macOS workspace for supervising several AI coding agents at once. It uses AeroSpace to keep Cursor project windows in numbered workspaces, then sends desktop notifications when Claude Code, Codex CLI, OpenCode, or Kimi Code finishes or needs attention.
 
