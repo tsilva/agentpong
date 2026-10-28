@@ -68,6 +68,20 @@ Codex CLI and Kimi Code hooks are written into their `config.toml` files automat
 
 ![agentpong architecture diagram](./architecture.png)
 
+## Secret scanning
+
+GitHub scans the changed commit range on ordinary pushes and pull requests.
+If a push's previous tip is no longer available after rewritten history, the
+scanner checks all history reachable from the new tip, requiring a complete
+checkout. Missing PR bases, invalid revisions and shallow fallback checkouts
+remain failures. Scanner source and matched values are never published.
+
+Run the credential-free workflow regressions with:
+
+```sh
+python3 -m unittest discover -s tests -p test_secret_scan_history.py
+```
+
 ## License
 
 [MIT](LICENSE)
